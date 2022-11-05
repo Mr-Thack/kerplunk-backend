@@ -17,7 +17,7 @@ def send(OPERATION: cython.char[16], MODE: cython.char[8], DATA: str, resp):
         op = operations.opFuncs[operations.opNames.index(OPERATION)][switch.get(MODE,5)]
     except:
         resp('402 NONEXISTANT OPERATION',[('Content-Type','text/plain;charset=utf-8')])
-        return ''
+        return [b'no']
     return op(DATA,resp)
 
 #TODO, the error codes are wrong, set them to correct HTTP error codes
@@ -44,7 +44,7 @@ def run(env,resp):
     print(DATA)
     MODE = env['REQUEST_METHOD']
     if DATA != '' or MODE == 'GET':
-        return bytes(send(OPERATION,MODE,DATA,resp),'UTF-8')
+        return [bytes(send(OPERATION,MODE,DATA,resp),'UTF-8')]
     else:
         resp('401 NO DATA', [('Content-Type', 'text/plain;charset=utf-8')])
         return [b'']

@@ -6,5 +6,5 @@ def NYI(D,R):
     return ''
 
 def RES(R,D='',C='200 OK'):
-    R(C,[('Contenty-Type','text/plain;charset=utf-8')])
+    R(C,[('Content-Type','text/plain;charset=utf-8')])
     return js.dumps(D)
