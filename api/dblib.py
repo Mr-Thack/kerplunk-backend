@@ -1,6 +1,7 @@
 import cython
 import os,sys
 import lmdb
+import ujson as js
 
 class LMDB:
     def __init__(self,path):
@@ -29,6 +30,13 @@ class LMDB:
             print(e)
             return False
         return True
+    def jput(self,key: str, value) -> bool: #value is an object
+        try:
+            self.put(key,js.dumps(value))
+        except (Exception) as e:
+            print(e)
+            return False
+        return True
     def delt(self, key: str) -> bool:
         try:
             txn = self.env.begin(write=True)
@@ -38,9 +46,16 @@ class LMDB:
         except Exception as e:
             print(e)
             return False
-    def get(self, key: str) -> cython.char[64]:
+    def get(self, key: str):# -> cython.char[64]:
         txn = self.env.begin()
         return txn.get(key.encode())
+    def jget(self, key: str):
+        try:
+            print(key)
+            return js.loads(self.get(key))
+        except (Exception) as e:
+            print(e)
+            return None
     def length(self):
         return self.env.stat()['entries']
     def display(self) -> None:

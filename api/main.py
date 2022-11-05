@@ -1,6 +1,7 @@
 import ujson as js
 import operations
 import cython
+import urllib.parse
 
 switch : dict
 op : tuple
@@ -27,21 +28,23 @@ def run(env,resp):
     opindx : cython.int
     fnindx : cython.int
     reqsize : cython.int
-    HTTP_DATA : str
+    DATA : str
     REQBODY : str
     MODE : cython.char[8]
-    # /api/signup -> '','api','signup'
-    OPERATION = env['REQUEST_URI'].split("/")[2]
-    MODE = env['REQUEST_METHOD']
-    if 'HTTP_DATA' in env or int(env['CONTENT_LENGTH']) > 0 or MODE == 'GET':
+    # /api/signup?a=b -> '','api','signup?a=b' => 'signup', 'a=b'
+    parts = env['REQUEST_URI'].split('/')[2].split('?')
+    OPERATION = parts[0];
+    try:
+        DATA = urllib.parse.parse_qs(parts[1]) # If GET request
+    except:
         try:
-            DATA = js.loads(env['HTTP_DATA'])
+            DATA = js.loads(str(env['wsgi.input'].read(int(env['CONTENT_LENGTH'])),'UTF-8'))
         except:
-            try:
-                DATA = js.loads(str(env['wsgi.input'].read(int(env['CONTENT_LENGTH'])),'UTF-8'))
-            except:
-                DATA = ''
-        return bytes(send(OPERATION,MODE,DATA,resp),'ASCII')
+            DATA = ''
+    print(DATA)
+    MODE = env['REQUEST_METHOD']
+    if DATA != '' or MODE == 'GET':
+        return bytes(send(OPERATION,MODE,DATA,resp),'UTF-8')
     else:
         resp('401 NO DATA', [('Content-Type', 'text/plain;charset=utf-8')])
         return [b'']

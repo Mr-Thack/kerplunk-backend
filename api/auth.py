@@ -1,33 +1,39 @@
 from common import NYI
+from common import RES
 import cython
 import zxcvbn
-import ujson as js
 from dblib import LMDB
 
 userDB : LMDB = LMDB("Credentials")
 userCreds : cython.char[64]
 
+# In DB, the credentials are stored (salt,hash)
+# thus accessed with creds[0] and creds[1]
+
 def GET(D,R):
     rz : bool = False
-
-    if isinstance(body['hash'],str):
-        if isinstance(body['username'],str):
-            print(body['username'] + ' is trying to log in')
-            userCreds = userDB.get(body['username'])
-            if not isinstance(userCreds,None):
-                rz = body['hash'].decode() == js.loads(userCreds)['hash'].decode()
-        R('200 OK',[('Content-Type','text/plain;character=utf-8')])
-        return js.dumps({'rz':rz})
-    else:
-        return js.dumps({'salt':js.loads(userDB.get(body['username']))['salt']})
+    if 'hash' in D and 'username' in D:
+        print(D['username'] + ' is trying to log in')
+        userCreds = userDB.jget(D['username'])
+        if userCreds != None:
+            rz = D['hash'].decode() == userCreds[1].decode()
+        return RES(R,{'rz':rz})
+    elif 'username' in D:
+        rs = userDB.jget(D['username'][0])
+        if not rs == None:
+            return RES(R,{'salt':rs[0]})
+        else:
+            #TODO: give false hash to trick a hacker into thinking he got someone
+            return RES(R,{'rz':rz},'401')
+    return RES(R,{'rz':rz},'401')
+    # If we're still stuck here, that means we failed, so we return 401
 
 def POST(D,R):
     rz : bool = False
-    if not userDB.get(D['username']):
-        userDB.put(D['username'],js.dumps({ D['salt'] : D['hash'] }))
+    if 'username' in D and not userDB.get(D['username']):
+        userDB.jput(D['username'],( D['salt'], D['hash']) )
         print('Signed up user ' + D['username'])
         rz = True
-    R('200 OK',[('Content-Type','text/plain;charset=utf-8')])
-    return js.dumps({'rz':rz})
+    return RES(R,{'rz':rz})
 
 Auth = (GET,POST)
