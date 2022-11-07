@@ -1,5 +1,5 @@
 from common import NYI
-from common import RES
+from common import RES, get
 import cython
 import zxcvbn
 from dblib import LMDB
@@ -12,27 +12,30 @@ userCreds : cython.char[64]
 
 def GET(D,R):
     rz : bool = False
-    if 'hash' in D and 'username' in D:
-        print(D['username'] + ' is trying to log in')
-        userCreds = userDB.jget(D['username'])
+    username = get(D,'username')
+    phash = get(D,'hash')
+    if phash and username:
+        userCreds = userDB.get(username)
         if userCreds != None:
-            rz = D['hash'].decode() == userCreds[1].decode()
+            rz = bytes(phash,'utf-8') == userCreds[1]
         return RES(R,{'rz':rz})
-    elif 'username' in D:
-        rs = userDB.jget(D['username'][0])
+    elif username:
+        rs = userDB.sget(username).split(' ')[0] #stored as 'salt hash'
         if not rs == None:
-            return RES(R,{'salt':rs[0]})
+            return RES(R,{'salt':rs})
         else:
-            #TODO: give false hash to trick a hacker into thinking he got someone
-            return RES(R,{'rz':rz},'401')
+            #TODO: give false salt to trick a hacker into thinking he got someone
+            return RES(R,{'rz':rz},'402')
     return RES(R,{'rz':rz},'401')
     # If we're still stuck here, that means we failed, so we return 401
 
 def POST(D,R):
     rz : bool = False
-    if 'username' in D and not userDB.get(D['username']):
-        userDB.jput(D['username'],( D['salt'], D['hash']) )
-        print('Signed up user ' + D['username'])
+    username = get(D,'username')
+    salt = get(D,'salt')
+    phash = get(D,'hash')
+    if username and salt and phash and not userDB.get(username):
+        userDB.put(username,salt + ' ' + phash )
         rz = True
     return RES(R,{'rz':rz})
 

@@ -49,11 +49,15 @@ class LMDB:
     def get(self, key: str):# -> cython.char[64]:
         txn = self.env.begin()
         return txn.get(key.encode())
+    def sget(self,key: str) -> str:
+        #Gets A String
+        return self.get(key).decode()
     def jget(self, key: str):
+        #Gets a JSON Object
         try:
-            print(key)
             return js.loads(self.get(key))
         except (Exception) as e:
+            print("error in jget")
             print(e)
             return None
     def length(self):
