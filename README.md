@@ -1,9 +1,8 @@
 # bhalserver-backend
 The backend for bhalserver, written in Cython, for FCGI, for Lighttpd
 
-# Required Packages
-cython
-ujson
+# Install Required Packages
+pip install cython ujson zxcvbn lmdb
 
 # Notes
 Any GET request (or any url query parameters) must use `D['field'][0]` becuase of the library we use.

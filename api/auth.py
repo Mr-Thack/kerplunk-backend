@@ -20,9 +20,9 @@ def GET(D,R):
             rz = bytes(phash,'utf-8') == userCreds[1]
         return RES(R,{'rz':rz})
     elif username:
-        rs = userDB.sget(username).split(' ')[0] #stored as 'salt hash'
+        rs = userDB.sget(username) #stored as 'salt hash'
         if not rs == None:
-            return RES(R,{'salt':rs})
+            return RES(R,{'salt':rs.split(' ')[0]})
         else:
             #TODO: give false salt to trick a hacker into thinking he got someone
             return RES(R,{'rz':rz},'402')

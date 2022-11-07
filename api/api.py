@@ -18,7 +18,7 @@ def application(env, start_response):
         try:
             # wsgi.input and content_len will come as a char array
             # convertFromJSON(HTTPBody.toString.substring(lengthOfHTTPBody))
-            tmp = js.loads(env['wsgi.input'].encode().read(int(env['CONTENT_LENGTH'])))
+            tmp = js.loads(env['wsgi.input'].read(int(env['CONTENT_LENGTH'])))
             data = [(k, v) for k, v in tmp.items()] #then convert to array of tuples
         except:
             pass

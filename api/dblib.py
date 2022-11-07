@@ -1,18 +1,18 @@
 import cython
-import os,sys
 import lmdb
+import os
 import ujson as js
 
 class LMDB:
     def __init__(self,path):
-        self.path : str = path
+        self.path : str = os.getcwd() + '/data/' + path
         self.initialize()
     def initialize(self):
         print('NEW INSTANCE BEING OPENED OF' + self.path)
         self.env = None
         try:
             print('Opening DB')
-            self.env = lmdb.open(self.path, map_size = 104857600*40 ) #104857600 100M
+            self.env = lmdb.open(self.path, map_size = 104857600*40, subdir=True ) #104857600 100M
         except Exception as e:
             print(e)
             self.env = None
@@ -51,7 +51,10 @@ class LMDB:
         return txn.get(key.encode())
     def sget(self,key: str) -> str:
         #Gets A String
-        return self.get(key).decode()
+        try:
+            return self.get(key).decode()
+        except:
+            return None
     def jget(self, key: str):
         #Gets a JSON Object
         try:
