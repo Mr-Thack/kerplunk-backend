@@ -12,19 +12,21 @@ def send(OPERATION: cython.char[16], MODE: cython.char[8], DATA: str, resp):
         'POST' : 1,
         'PUT' : 2,
         'DELETE' : 3
-    }
+    } # ENUM for HTTP Modes
     try:
         op = operations.opFuncs[operations.opNames.index(OPERATION)][switch.get(MODE,5)]
+        # op = handlerFunctions[nameOfHanderFuncUserWants][ModeOfUser]
     except:
         resp('402',[('Content-Type','text/plain;charset=utf-8')])
-        return [b'no']
-    return op(DATA,resp)
+        return [b'no'] # Does seem to hurt to leave it like that
+    return op(DATA,resp) # run the operation with given data and ability to respond
 
 #TODO, the error codes are wrong, set them to correct HTTP error codes
 #environ, respond
 def run(mode,operation,addr,data,resp):
-    if data != '' or mode == 'GET':
+    if data != '' or mode == 'GET': # If there's no data or on GET 
         return [send(operation,mode,data,resp).encode()]
+        # return array of bytes of response
     else:
         resp('401', [('Content-Type', 'text/plain;charset=utf-8')])
         return [b'']
