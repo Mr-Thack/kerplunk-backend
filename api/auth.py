@@ -1,6 +1,7 @@
 from common import NYI
 from common import RES, get
 import cython
+import bcrypt
 import zxcvbn # To check if the password's good
 from dblib import LMDB
 
@@ -13,13 +14,13 @@ userCreds : cython.char[64] # Type of data, for Cython
 
 def GET(D,R): # D for Data, R for Respond
     rz : bool = False # rezult
-    username = get(D,'username') # Get username from Data object
-    phash = get(D,'hash') # Get Hash from Data Object
-    if phash and username: # If there exists a has and username
+    username = D.get('username') # Get username from Data object
+    phash = D.get('hash') # Get Hash from Data Object
+    if phash and username:
         userCreds = userDB.get(username) # Ask database for username
         if userCreds != None:
             # 'None' is returned when nothing is found for given index
-            rz = bytes(phash,'utf-8') == userCreds[1]
+            rz = bytes(phash,'utf-8') == userCreds.split()[1]
             # Check if the utf8 representation of given hash == stored user hash
         return RES(R,{'rz':rz}) # This is a JSON Object: 
         # {'dataField':'data','nextField':'moreData!'}
@@ -38,14 +39,21 @@ def GET(D,R): # D for Data, R for Respond
     # If we're still stuck here, that means we failed, so we return 401
 
 def POST(D,R):
-    rz : bool = False # Set to false
-    username = get(D,'username') # Get username from given Data
-    salt = get(D,'salt') # Get salt from given data
-    phash = get(D,'hash') # Get hash from given data
-    if username and salt and phash and not userDB.get(username):
+    error = '' # we start with no errors
+    username = D.get('username') # Get username from given Data
+    salt = D.get('salt') # Get salt from given data
+    phash = D.get('hash') # Get hash from given data
+    if not username:
+        error='Missing username'
+    elif userDB.get(username):
+        error='Username Taken'
+    elif not salt:
+        error='Missing salt'
+    elif not phash:
+        error='Missing hash'
+    else:
         # If all three (username, salt, and hash) and username not registered
         userDB.put(username,salt + ' ' + phash ) # Make a new entry
-        rz = True
-    return RES(R,{'rz':rz})
+    return RES(R,{'error':error})
 
 Auth = (GET,POST) # See operations.py for more info on how it's organized

@@ -10,7 +10,7 @@ def application(env, start_response):
     mode=env['REQUEST_METHOD'] #HTTP Methods such as GET,POST,etc
     if mode=='GET':
         try: # Wrap for error
-            data = urllib.parse.parse_qsl(parts[1])
+            data = dict(urllib.parse.parse_qsl(parts[1]))
             # gives an array of tuples
         except:
             pass
@@ -19,7 +19,8 @@ def application(env, start_response):
             # wsgi.input and content_len will come as a char array
             # convertFromJSON(HTTPBody.toString.substring(lengthOfHTTPBody))
             tmp = js.loads(env['wsgi.input'].read(int(env['CONTENT_LENGTH'])))
-            data = [(k, v) for k, v in tmp.items()] #then convert to array of tuples
+            print(tmp)
+            data = dict([(k, v) for k, v in tmp.items()]) #then convert to array of tuples
         except:
             pass
     # give mode,operation,addr,data

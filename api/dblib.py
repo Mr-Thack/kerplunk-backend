@@ -73,6 +73,9 @@ class LMDB:
     def sget(self,key: str) -> str:
         #Gets A String
         try:
+            rz = self.get(key)
+            if not rz:
+                return None
             return self.get(key).decode()
         except Exception as e:
             print('Failed sget: ' + e)
@@ -80,6 +83,9 @@ class LMDB:
     def jget(self, key: str):
         #Gets a JSON Object
         try:
+            rz = self.get(key)
+            if not rz:
+                return None
             return js.loads(self.get(key))
         except (Exception) as e:
             print("Failed jget: " + e)
