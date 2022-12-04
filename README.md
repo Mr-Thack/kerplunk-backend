@@ -2,7 +2,7 @@
 The backend for bhalserver, written in Cython, for FCGI, for Lighttpd
 
 # Install Required Packages
-pip install cython ujson zxcvbn lmdb
+pip install cython ujson zxcvbn lmdb 
 
 # Run
 ```
@@ -90,7 +90,6 @@ print(exampleDB.length) # get length
 exampleDB.display() # Debug all data
 exampleDB.close() # proper way to stop
 ```
-
 
 # Warning
 ## Heavily Untested, Probably will Crash##

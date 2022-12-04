@@ -1,0 +1,12 @@
+The way that this works for sign up:
+(Client Calculates Salt & Hash from password)
+1. Client Posts username, salt, hash
+2. We store username, salt, hash
+
+For Sign In:
+1. Client Gets salt & hash with username
+2. Server Gives Salt
+(Client Calculates Hash from password & Salt)
+3. Client Sends back Salt & Username
+4. Server Calculates & Stores Session ID In RAM
+5. Server Sends Back Session ID

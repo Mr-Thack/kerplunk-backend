@@ -14,14 +14,13 @@ def application(env, start_response):
             # gives an array of tuples
         except:
             pass
-    if mode=='POST':
+    elif mode=='POST':
         try:
             # wsgi.input and content_len will come as a char array
             # convertFromJSON(HTTPBody.toString.substring(lengthOfHTTPBody))
-            tmp = js.loads(env['wsgi.input'].read(int(env['CONTENT_LENGTH'])))
-            print(tmp)
-            data = dict([(k, v) for k, v in tmp.items()]) #then convert to array of tuples
+            data = js.loads(env['wsgi.input'].read(int(env['CONTENT_LENGTH'])))
         except:
             pass
-    # give mode,operation,addr,data
-    return main.run(mode,parts[0],env['REMOTE_ADDR'],data,start_response)
+    data['ip'] = env['REMOTE_ADDR']
+    # give mode,operation (AKA endpoint),data,and function to reply
+    return main.run(mode,parts[0],data,start_response)
