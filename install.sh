@@ -6,4 +6,5 @@ rm -rf /etc/lighttpd
 mkdir /etc/lighttpd
 cp ./lighttpd-config/* /etc/lighttpd
 
+service uwsgi restart
 

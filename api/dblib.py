@@ -3,7 +3,7 @@ import lmdb
 import os
 import ujson as js
 
-PATH='../data' # Default Path
+PATH='../data/data' # Default Path
 # I'm hoping this is only run once
 print('OPENING ENVIRONMENT')
 env = lmdb.open(PATH, max_dbs=4,writemap=True,subdir=True)
