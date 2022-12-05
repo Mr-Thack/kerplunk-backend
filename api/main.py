@@ -7,9 +7,8 @@ MODES = dict(zip(['GET','POST','PUT','DELETE'],range(4))) # ENUM for HTTP Modes
 
 def send(op: cython.char[16], mode: cython.char[8], DATA: str, resp):
     if op in opNames and mode in MODES:
-        print(MODES[mode])
         return opFuncs[opNames.index(op)][MODES[mode]](DATA,resp)
-        # handlerFunctions[nameOfHanderFuncUserWants][ModeOfUser](DATA,resp)
+    # handlerFunctions[nameOfHanderFuncUserWants][ModeOfUser](DATA,resp)
     else:
         resp('402',[('Content-Type','text/plain;charset=utf-8')])
         return [b' ']

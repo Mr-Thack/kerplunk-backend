@@ -8,7 +8,7 @@ def application(env, start_response):
     # Cuts up the REQUEST_URI (after the ip address)
     mode=env['REQUEST_METHOD'] #HTTP Methods such as GET,POST,etc
     data = []
-    if env.get('CONTENT_LENGTH'):
+    if env.get('CONTENT_LENGTH') and env['CONTENT_LENGTH']!='0':
         # wsgi.input and content_len will come as a char array
         # convertFromJSON(HTTPBody.toString.substring(lengthOfHTTPBody))
         try:

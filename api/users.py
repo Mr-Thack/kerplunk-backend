@@ -34,7 +34,6 @@ def setField(email,field,val):
 
 # The actual Handlers
 def GET(D,R):
-    print('helllo')
     #If the first half is altered, alter POST
     error = '' # Start with no error
     field = D.get('field')

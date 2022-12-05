@@ -12,8 +12,6 @@ def SIDValidity(sid, ip):
     #r = active.sget(sid)
     r= active.get(sid)
     #active.display()
-    print('active')
-    print(active)
     # To check if the timestamp from the last login is still valid (Less than an hour)
     if r:
         r=r.split(' ')
