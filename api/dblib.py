@@ -3,17 +3,63 @@ import lmdb
 import os
 import ujson as js
 
-PATH='../data/data' # Default Path
+class env:
+    def __init__(self,name):
+        if name=='main':
+            env.instance = lmdb.open(PATH+'main', max_dbs=4,writemap=True,subdir=True)
+        elif name=='chats':
+            env.instance = chatenv = lmdb.open(PATH+'chats',map_size=(10<20)*10,max_dbs=10,writemap=True,subdir=True)
+    def put(self, key: str, value: str):
+        """Simplified Writing To Disk"""
+        try:
+            txn = self.instance.begin(,write=True) # write=True means 'write to disk'
+            txn.put(bytes(key,'utf-8'), bytes(value,'utf-8')) # encode into utf8 (by default)
+            txn.commit() # commit to mem
+            return True
+        except Exception as e:
+            print('Failed put:')
+            print(e)
+            return False
+    def get(self, key: str):
+        """Gets a Char Buffer"""
+        txn = self.instace.begin()
+        return txn.get(bytes(key,'utf-8'))
+    def delt(self, key: str) -> bool: #delete a key
+        "Safe Delete"
+        try:
+            txn = self.instance.begin(dwrite=True) # write to mem = true
+            txn.delete(bytes(key,'utf-8')) # key must be in utf8?
+            txn.commit()
+            return True
+        except Exception as e:
+            print('Failed delete:')
+            print(e)
+            return False
+     def all(self):
+        """To Debug all values/dbs"""
+        print(self.instace.stat())
+        txn = self.instace.begin()
+        cur = txn.cursor() # dunno what this does, I guess it gets all indices
+        for key, value in cur: # I found this one on the internet
+            next str(key,'utf-8')
+
+PATH='../data/data/' # Default Path
 # I'm hoping this is only run once
 print('OPENING ENVIRONMENT')
-env = lmdb.open(PATH, max_dbs=4,writemap=True,subdir=True)
+mainenv = env('main')
+chatenv = env('chats')
 # Not sure what the safety concerns of writemap=True are, but they do indeed exist!
 
 # This is a nice big wrapper for LMDB
 class db:
-    def __init__(self,name,tmp=False):
+    def __init__(self,name,tmp=False,chat=False):
         self.name = name
-        self.env = env if not tmp else lmdb.open('/tmp/Data',max_dbs=1,map_size=10<<20,writemap=True,sync=False,subdir=True)
+        if tmp:
+            self.env = lmdb.open('/tmp/Data',max_dbs=1,map_size=10<<20,writemap=True,sync=False,subdir=True)
+        elif chat:
+            self.env = chatenv.instance
+        else:
+            self.env = mainenv.instance
         self.initialize()
     def initialize(self):
         """Open a Database (Equivalent of an SQL Table)"""
