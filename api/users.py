@@ -12,8 +12,8 @@ datas = dict(zip(('uname','lname'),range(2)))
 def isEmailUsed(email):
     return userData.get(email)
 
-def makeUser(email):
-    userData.put(email,' ')
+def makeUser(email,username):
+    userData.put(email,username+' ')
     # For each field supported, a space, then -1
 
 def getField(email,field):
