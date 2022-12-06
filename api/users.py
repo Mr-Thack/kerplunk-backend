@@ -74,22 +74,26 @@ def GET(D,R):
 def POST(D,R):
     #If the first half is altered, alter GET
     #Note that for name, we'd have to do fname,lname
-    error = ''
-    field = D.get('field')
+    re = '' # response
     sid = D.get('sid')
-    val = D.get('val')
     if not sid:
-        error = 'No SID'
-    elif not field in datas:
-        error = 'Not a valid Data Field'
-    elif not val:
-        error = 'No Value'
+        re = 'No SID'
     else:
         email = SIDValidity(sid,D['ip'])
         if not email:
-            error = 'SID Expired'
-        elif not setField(email,datas[field],val):
-            error = 'Failed To Write. Debug!'
-    return RES(R,{'error':error})
+            re = 'SID Expired'
+        d = {} # data to change
+        for k,v in D.items():
+            if k in datas:
+                d[k] = v
+        if d:
+            for k,v in d.items():
+                setField(email,datas[k],v)
+                re+=' '+k
+            re=re[1:] # remove first ' ' bcz it's extra
+            return RES(R,{'changed':re})
+        else:
+            error = 'no field-value specified'
+    return RES(R,{'error':re})
 
 Users = (GET,POST)
