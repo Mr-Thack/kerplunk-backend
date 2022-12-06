@@ -1,5 +1,5 @@
 import main
-import urllib.parse
+from urllib.parse import parse_qsl,unquote
 import ujson as js
 
 def application(env, start_response):
@@ -12,12 +12,15 @@ def application(env, start_response):
         # wsgi.input and content_len will come as a char array
         # convertFromJSON(HTTPBody.toString.substring(lengthOfHTTPBody))
         try:
-            data.extend(js.loads(env['wsgi.input'].read(int(env['CONTENT_LENGTH']))).items())
+            # Note that this does not support FORM data
+            # We are only accepting post data as JSON
+            # TODO: add support for POSTing in FORM
+            data.extend(js.loads( env['wsgi.input'].read(int(env['CONTENT_LENGTH']) )).items())
         except Exception as e:
             print('api.py:17')
             print(e)
-    else:
-        data = urllib.parse.parse_qsl(parts[1])
+    elif len(parts) == 2:
+        data = parse_qsl(unquote(parts[1]))
     data.extend([('ip',env['REMOTE_ADDR'])])
     # give mode,operation (AKA endpoint),data,and function to reply
     return main.run(mode,parts[0],dict(data),start_response)

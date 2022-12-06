@@ -3,10 +3,6 @@ from http.server import CGIHTTPRequestHandler, HTTPServer
 import sys
 import api
 
-# Dev Testing
-
-hostName = "127.0.0.1"
-serverPort = 8080
 # So, basically, I'm too lazy to
 # go implement an actual Python server
 # just for devtesting,
@@ -39,10 +35,13 @@ class MyServer(CGIHTTPRequestHandler):
             'CONTENT_LENGTH':self.headers['Content-Length'],
             'wsgi.input':self.rfile
         } # We model everything off SCGI because this script tries to imitate SCGI
+        #print(self.rfile.read(int(self.headers['Content-Length'])))
         for r in api.application(env,self.respond):
             self.wfile.write(r)
 
-if __name__ == "__main__": #If running as main Python Script
+def main():
+    hostName = "127.0.0.1"
+    serverPort = 8080
     print('Using below as bind address (specify 127.0.0.1 as first argument to program for local testing)')
     try:
         hostName = sys.argv[1] # Try to see if hostname specified
@@ -61,6 +60,8 @@ if __name__ == "__main__": #If running as main Python Script
     except KeyboardInterrupt:
         # For example, CTRL+C
         pass
-
     webServer.server_close() # Shutup and stop
     print("Server stopped.")
+
+if __name__=='__main__':
+    main()

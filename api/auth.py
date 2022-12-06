@@ -17,17 +17,21 @@ But we keep value of the username key as "email salt hash"
 def GET(D,R):
     username = D.get('username')
     thash = D.get('hash')
+    error='Missing Username'
     #t-hash for test, k-hash for known
     if username:
-        (email,salt,khash) = str(creds.get(username),'utf-8').split(' ')
-        if thash and creds.get(username): #AutoCaching
+        data = creds.sget(username)
+        if data:
+            (email,salt,khash) = data.split(' ')
             if thash==khash:
                 return RES(R,{'sid':makeSID(email,D['ip'])})
+            else:
+                return RES(R,{'salt':salt}) # Get the 1st part
+                # TODO: make HTTP errors actually line up with the standard,
+                # TODO: give false salt/hash to hackers
         else:
-            return RES(R,{'salt':salt}) # Get the 1st part
-            # TODO: make HTTP errors actually line up with the standard,
-            # TODO: give false salt/hash to hackers
-    return RES(R,{'error':'Missing username/hash'})
+            error='Sign Up!'
+    return RES(R,{'error':error})
 
 def POST(D,R):
     error = '' # we start with no errors

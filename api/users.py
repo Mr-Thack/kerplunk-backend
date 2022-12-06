@@ -5,8 +5,9 @@ from dblib import db
 userData : db = db("UserData")
 # UserName,LegalName
 # Don't forget to change range to adjust for new length
-datas = dict(zip(('uname','lname'),range(2)))
-
+datanames = ('uname','lname')
+datas = dict(zip(datanames,range(len(datanames))))
+datanames=set(datanames) # This will help with performance later
 
 # Split by spaces
 def isEmailUsed(email):
@@ -36,18 +37,38 @@ def setField(email,field,val):
 def GET(D,R):
     #If the first half is altered, alter POST
     error = '' # Start with no error
-    field = D.get('field')
+    rfields = D.get('fields') # Could be 1, could be more
     sid = D.get('sid')
     if not sid:
         error = 'Login! No SID/Retired SID'
-    elif not field in datas:
-        error = 'Not a valid Data Field'
-    else:
-        email = SIDValidity(sid,D['ip'])
-        if email:
-            return RES(R,{'val':getField(email,datas[field])})
+    elif rfields:
+        fields = []
+        if rfields.find(',') == -1:
+            # If only 1 field requested
+            if rfields in datas:
+                fields = [rfields]
+            else:
+                error = 'Field not supported'
         else:
-            error = 'Email not found'
+            if not set(rfields.split(',')) <= datanames:
+                """
+                2) Python has a fancy method of checking if a is a subset of b
+                We can use <= to check if all key in rfields are a key in datas
+                """
+                error = 'Not Valid Data Fields'
+            else:
+                fields = rfields.split(',')
+        if fields:
+            email = SIDValidity(sid,D['ip'])
+            if email:
+                re = {} # init response
+                for field in fields:
+                    re[field] = getField(email,datas[field])
+                return RES(R,re)
+            else:
+                error = 'Email not found'
+        # No need for another else statement,
+        # bcz the above if elses already dealt with it
     return RES(R,{'error':error})
 
 def POST(D,R):

@@ -32,6 +32,17 @@ class db:
             print('FAILED TO OPEN DB ' + self.name + ' at ' + self.env.path() + ' BCZ:')
             print(e)
             quit(0)
+    def eput(self,key:str,value:str):
+        """Writing Directly to the environment, not to a subdb"""
+        try:
+            txn = self.env.begin(write=True)
+            txn.put(bytes(key,'utf-8'),bytes(value,'utf-8'))
+            txn.commit()
+            return True
+        except Exception as e:
+            print('Failed Write To Env:')
+            print(e)
+            return False
     def put(self, key: str, value: str):
         """Simplified Writing To Disk"""
         try:
@@ -52,10 +63,10 @@ class db:
             print('Failed jput:')
             print(e)
             return False
-    def delt(self, key: str) -> bool: #delete a key
+    def delt(self, key: str,isDB=True) -> bool: #delete a key
         "Safe Delete"
         try:
-            txn = self.env.begin(db=self.db,write=True) # write to mem = true
+            txn = self.env.begin(db=self.db,write=True) if isDB else self.env.begin(write=True)
             txn.delete(bytes(key,'utf-8')) # key must be in utf8?
             txn.commit()
             return True
@@ -63,10 +74,12 @@ class db:
             print('Failed delete:')
             print(e)
             return False
+    def eget(self,key:str):
+        """Get a char buf from env not db"""
+        return self.env.begin().get(bytes(key,'utf-8'))
     def get(self, key: str):
         """Gets a Char Buffer"""
-        txn = self.env.begin(db=self.db)
-        return txn.get(bytes(key,'utf-8'))
+        return self.env.begin(db=self.db).get(bytes(key,'utf-8'))
     def sget(self,key: str) -> str:
         """Gets a String"""
         rz = self.get(key)
