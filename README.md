@@ -4,7 +4,7 @@ The backend for bhalserver, written in Cython, for FCGI, for Lighttpd
 # Install Required Packages
 pip install cython ujson zxcvbn lmdb 
 
-# Run
+# Run As Server
 ```
 cd api/
 python3 testapi.py
@@ -13,7 +13,14 @@ We could optionally specify ip address and port.
 Then go to http://127.0.0.1/8080 in your browser
 Then test and run the API using web dev tools, such as fetch
 
-# Test API Using Fetch()
+# Automatically Test API Using Unittest
+```
+cd api/
+python3 unitTests.py
+```
+Write more when new features are added
+
+# Manually Test API Using Fetch()
 Open Chrome Dev Tools, then go to Console.
 Use the below template and modify as required
 For example:
