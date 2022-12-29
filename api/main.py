@@ -16,7 +16,7 @@ def send(op: cython.char[16], mode: cython.char[8], DATA: str, resp):
 #TODO, the error codes are wrong, set them to correct HTTP error codes
 #environ, respond
 def run(mode,operation,data,resp):
-    if data != '' or mode == 'GET': # If there's no data or on GET 
+    if data != '' or mode == 'GET' or mode == 'POST': # If there's no data or on GET 
         return send(operation,mode,data,resp)
         # return array of bytes of response
     else:

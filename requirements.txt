@@ -1,0 +1,6 @@
+cython
+ujson
+zxcvbn
+lmdb
+requests
+shutil

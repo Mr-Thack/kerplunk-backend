@@ -1,8 +1,9 @@
 # bhalserver-backend
-The backend for bhalserver, written in Cython, for FCGI, for Lighttpd
-
+The backend for bhalserver, written in Python & Cython, for FCGI, for Lighttpd
+We might add a Rust HTTP Server in later
+Also, note that this requires atleast Python 3.9
 # Install Required Packages
-pip install cython ujson zxcvbn lmdb 
+pip install -r requirements.txt
 
 # Run As Server
 ```

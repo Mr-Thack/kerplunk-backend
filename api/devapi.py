@@ -9,6 +9,16 @@ import api
 # so this file mimics SCGI just enough
 # to convince api.py into working
 
+def core_PUT_and_GET(self):
+    """Surprisingly, GET & PUT are formatted the same in HTTP"""
+    env = { # All we need for SCGI Interface
+        'REQUEST_URI':self.path,
+        'REQUEST_METHOD':self.command,
+        'REMOTE_ADDR':self.client_address[0]
+    } # We model everything off SCGI because this script tries to imitate SCGI
+    for r in api.application(env,self.respond): # give data in env, and ability to respond
+        self.wfile.write(r) # Send data back to dev
+
 class MyServer(CGIHTTPRequestHandler):
     def respond(self,code,headers):
         self.send_response(int(code))
@@ -25,7 +35,7 @@ class MyServer(CGIHTTPRequestHandler):
             'REQUEST_METHOD':self.command,
             'REMOTE_ADDR':self.client_address[0]
         } # We model everything off SCGI because this script tries to imitate SCGI
-        for r in api.application(env,self.respond): #give data in env, and ability to respond
+        for r in api.application(env,self.respond): # give data in env, and ability to respond
             self.wfile.write(r) # Send data back to dev
     def do_POST(self):
         env = { # Data for SCGI Interface POST
@@ -35,9 +45,20 @@ class MyServer(CGIHTTPRequestHandler):
             'CONTENT_LENGTH':self.headers['Content-Length'],
             'wsgi.input':self.rfile
         } # We model everything off SCGI because this script tries to imitate SCGI
-        #print(self.rfile.read(int(self.headers['Content-Length'])))
         for r in api.application(env,self.respond):
             self.wfile.write(r)
+    def do_PUT(self):
+        env = { # All we need for SCGI Interface
+            'REQUEST_URI':self.path,
+            'REQUEST_METHOD':self.command,
+            'REMOTE_ADDR':self.client_address[0],
+            'CONTENT_LENGTH':self.headers['Content-Length'],
+            'wsgi.input':self.rfile
+        } # We model everything off SCGI because this script tries to imitate SCGI
+        for r in api.application(env,self.respond): # give data in env, and ability to respond
+            self.wfile.write(r) # Send data back to dev
+
+
 
 def main():
     hostName = "127.0.0.1"

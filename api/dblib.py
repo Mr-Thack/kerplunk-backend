@@ -5,6 +5,7 @@ import ujson as js
 
 PATH='../data/data/' # Default Path
 # I'm hoping this is only run once
+# If there's any proof this is being run multiple times, tell me plz -Abdul Muqeet
 print('OPENING ENVIRONMENT')
 mainenv = lmdb.open(PATH+'main', max_dbs=4,writemap=True,subdir=True)
 chatenv = lmdb.open(PATH+'chats',map_size=(10<20)*10,max_dbs=10,writemap=True,subdir=True)
@@ -32,48 +33,24 @@ class db:
             print('FAILED TO OPEN DB ' + self.name + ' at ' + self.env.path() + ' BCZ:')
             print(e)
             quit(0)
-    def eput(self,key:str,value:str):
-        """Writing Directly to the environment, not to a subdb"""
-        try:
-            txn = self.env.begin(write=True)
-            txn.put(bytes(key,'utf-8'),bytes(value,'utf-8'))
-            txn.commit()
-            return True
-        except Exception as e:
-            print('Failed Write To Env:')
-            print(e)
-            return False
-    def put(self, key: str, value: str):
+    def eput(self,key:str,value:str) -> bool:
+        """Writing Directly to the environment, not to a sub-db"""
+        txn = self.env.begin(write=True)
+        txn.put(bytes(key,'utf-8'),bytes(value,'utf-8'))
+        return txn.commit()
+    def put(self, key: str, value: str) -> bool:
         """Simplified Writing To Disk"""
-        try:
-            txn = self.env.begin(db=self.db,write=True) # write=True means 'write to disk'
-            txn.put(bytes(key,'utf-8'), bytes(value,'utf-8')) # encode into utf8 (by default)
-            txn.commit() # commit to mem
-            return True
-        except Exception as e:
-            print('Failed put:')
-            print(e)
-            return False
+        txn = self.env.begin(db=self.db,write=True) # write=True means 'write to disk'
+        txn.put(bytes(key,'utf-8'), bytes(value,'utf-8')) # encode into utf8 (by default)
+        return txn.commit() # commit to mem
     def jput(self,key: str, value) -> bool: #returns success
         """Put Value as a JSON object"""
-        try:
-            self.put(key,js.dumps(value)) #dump the JSON to string
-            return True
-        except (Exception) as e:
-            print('Failed jput:')
-            print(e)
-            return False
+        return self.put(key,js.dumps(value)) #dump the JSON to string
     def delt(self, key: str,isDB=True) -> bool: #delete a key
-        "Safe Delete"
-        try:
-            txn = self.env.begin(db=self.db,write=True) if isDB else self.env.begin(write=True)
-            txn.delete(bytes(key,'utf-8')) # key must be in utf8?
-            txn.commit()
-            return True
-        except Exception as e:
-            print('Failed delete:')
-            print(e)
-            return False
+        """Delete value of a key from DB"""
+        txn = self.env.begin(db=self.db,write=True) if isDB else self.env.begin(write=True)
+        txn.delete(bytes(key,'utf-8')) # key must be in utf8?
+        return txn.commit()
     def eget(self,key:str):
         """Get a char buf from env not db"""
         return self.env.begin().get(bytes(key,'utf-8'))
@@ -87,7 +64,7 @@ class db:
             return str(rz,'utf-8')
     def jget(self, key: str):
         """Gets a JSON Object"""
-        rz = self.get(key)
+        rz = js.loads(self.get(key))
         if rz:
             return js.loads(rz)
     def length(self,e=False):
@@ -99,9 +76,9 @@ class db:
         print(self.env.stat())
         txn = self.env.begin(db=self.db)
         cur = txn.cursor() # dunno what this does, I guess it gets all indices
-        for key, value in cur: # I found this one on the internet
-            print('Key: ' + str(key,'utf-8'))
-            print('Value: ' + str(self.get(str(key,'utf-8')),'utf-8') + "\n")
+        for k,v in cur: # I found this one on the internet
+            print('Key: ' + str(k,'utf-8'))
+            print('Value: ' + str(self.get(str(k,'utf-8')),'utf-8') + "\n")
     def close(self):
         # This should be done, but it doesn't seem to cause harm if it isn't
         self.db.close()

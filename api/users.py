@@ -1,39 +1,6 @@
-from common import RES,SIDValidity
-from dblib import db
+from common import RES,SIDValidity,NYI
+from user_operations import (set_field, valid_fields, valid_field, multi_get, multi_set)
 
-# Eventually hold email:username,fname+lname,phone#,school,classes
-userData : db = db("UserData")
-# UserName,LegalName
-# Don't forget to change range to adjust for new length
-datanames = ('uname','lname')
-datas = dict(zip(datanames,range(len(datanames))))
-datanames=set(datanames) # This will help with performance later
-
-# Split by spaces
-def isEmailUsed(email):
-    return userData.get(email)
-
-def makeUser(email,username):
-    userData.put(email,username+' ')
-    # For each field supported, a space, then -1
-
-def getField(email,field):
-    r = userData.sget(email).split(' ')[field]
-    if field==datas['lname']:
-        r=r.replace('_',' ')
-    return r
-
-def setField(email,field,val):
-    fa = userData.sget(email).split(' ')
-    fa[field] = val
-    nf = ''
-    for f in fa:
-        nf += ' ' + f
-    if field==datas['lname']:
-        nf.replace(' ','_')
-    return userData.put(email,nf[1:])
-
-# The actual Handlers
 def GET(D,R):
     #If the first half is altered, alter POST
     error = '' # Start with no error
@@ -42,15 +9,15 @@ def GET(D,R):
     if not sid:
         error = 'Login! No SID/Retired SID'
     elif rfields:
-        fields = []
+        fields : [str] = []
         if rfields.find(',') == -1:
             # If only 1 field requested
-            if rfields in datas:
+            if valid_field(rfields):
                 fields = [rfields]
             else:
                 error = 'Field not supported'
         else:
-            if not set(rfields.split(',')) <= datanames:
+            if not valid_fields(fields):
                 """
                 2) Python has a fancy method of checking if a is a subset of b
                 We can use <= to check if all key in rfields are a key in datas
@@ -61,9 +28,7 @@ def GET(D,R):
         if fields:
             email = SIDValidity(sid,D['ip'])
             if email:
-                re = {} # init response
-                for field in fields:
-                    re[field] = getField(email,datas[field])
+                re = multi_get(email,fields) # init response
                 return RES(R,re)
             else:
                 error = 'Email not found'
@@ -84,16 +49,12 @@ def POST(D,R):
             re = 'SID Expired'
         d = {} # data to change
         for k,v in D.items():
-            if k in datas:
+            if valid_field(k):
                 d[k] = v
         if d:
-            for k,v in d.items():
-                setField(email,datas[k],v)
-                re+=' '+k
-            re=re[1:] # remove first ' ' bcz it's extra
-            return RES(R,{'changed':re})
+            return RES(R,{'changed':multi_set(email,d.items())})
         else:
             error = 'no field-value specified'
     return RES(R,{'error':re})
 
-Users = (GET,POST)
+Users = (GET,POST,NYI,NYI)

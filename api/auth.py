@@ -1,5 +1,5 @@
-from common import RES, makeSID
-from users import makeUser, isEmailUsed
+from common import RES, makeSID,NYI
+from user_operations import make_user, is_email_used
 import cython
 import zxcvbn # To check if the password's good
 from dblib import db
@@ -41,7 +41,7 @@ def POST(D,R):
     phash = D.get('hash')
     if not email:
         error='Missing email'
-    elif isEmailUsed(email):
+    elif is_email_used(email):
         error='Email Already in use'
     elif not salt:
         error='Missing salt'
@@ -52,7 +52,7 @@ def POST(D,R):
     else:
         # If all four (email, username, salt, and hash) and username not registered
         creds.put(username,email + ' ' + salt + ' ' + phash) # Make a new entry
-        makeUser(email,username) # Set up user data
+        make_user(email,username) # Set up user data
     return RES(R,{'error':error})
 
-Auth = (GET,POST) # See operations.py for more info on how it's organized
+Auth = (GET,POST,NYI,NYI) # See operations.py for more info on how it's organized
