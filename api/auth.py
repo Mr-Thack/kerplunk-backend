@@ -1,12 +1,10 @@
-from common import RES, makeSID,NYI
+from common import RES, makeSID, NYI
 from user_operations import make_user, is_email_used
-import cython
-import zxcvbn # To check if the password's good
+# import zxcvbn  # To check if the password's good
 from dblib import db
 
-creds : db = db("Credentials")
+creds: db = db("Credentials")
 # Open a file called Credentials to store hash and salt and username
-userCreds : cython.char[64] # Type of data, for Cython
 
 """
 We use username as key for Credentials
@@ -14,24 +12,27 @@ bcz sending email over internet bad idea.
 But we keep value of the username key as "email salt hash"
 """
 
-def GET(D,R):
-    username = D.get('username')
-    thash = D.get('hash')
-    error='Missing Username'
-    #t-hash for test, k-hash for known
-    if username:
-        data = creds.sget(username)
-        if data:
-            (email,salt,khash) = data.split(' ')
-            if thash==khash:
-                return RES(R,{'sid':makeSID(email,D['ip'])})
+
+class Auth:
+    async def on_get(self, req, res):
+        D = req.params
+        username = D.get('username')
+        thash = D.get('hash')
+        error = 'Missing Username'
+        # t-hash for test, k-hash for known
+        if username:
+            data = creds.sget(username)
+            if data:
+                (email, salt, khash) = data.split(' ')
+                if thash == khash:
+                    res.media = {'sid': makeSID(email, D['ip'])}
+                else:
+                    res.media = {'salt': salt}  # Get the 1st part
+                    # TODO: make HTTP errors actually line up with the standard
+                    # TODO: give false salt/hash to hackers
             else:
-                return RES(R,{'salt':salt}) # Get the 1st part
-                # TODO: make HTTP errors actually line up with the standard,
-                # TODO: give false salt/hash to hackers
-        else:
-            error='Sign Up!'
-    return RES(R,{'error':error})
+                error = 'Sign Up!'
+        res.media = {'error': error}
 
 def POST(D,R):
     error = '' # we start with no errors
@@ -55,4 +56,4 @@ def POST(D,R):
         make_user(email,username) # Set up user data
     return RES(R,{'error':error})
 
-Auth = (GET,POST,NYI,NYI) # See operations.py for more info on how it's organized
+# Auth = (GET,POST,NYI,NYI) # See operations.py for more info on how it's organized

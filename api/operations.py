@@ -5,6 +5,6 @@ from chats import ChatRooms
 
 # The human-readable names are actually used in the HTTP Query
 # e.g. http://24.99.231.214/api/Auth
-opNames = ('Auth','Users','ChatRooms')
-# Data stored like ((GET,POST,PUT,DELETE),(another,one)) and each is mapped to a function
-opFuncs = (Auth,Users,ChatRooms)
+opNames = ('auth', 'users', 'chatrooms')
+# Data stored like ((GET,POST,PUT,DELETE),more) & each is mapped to a function
+opFuncs = (Auth, Users, ChatRooms)
