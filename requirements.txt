@@ -1,6 +1,7 @@
 cython
-ujson
+orjson
 zxcvbn
 lmdb
 requests
 shutil
+gunicorn

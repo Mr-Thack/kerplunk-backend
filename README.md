@@ -2,6 +2,11 @@
 The backend for bhalserver, written in Python & Cython, for FCGI, for Lighttpd
 We might add a Rust HTTP Server in later
 Also, note that this requires atleast Python 3.9
+# Alert(s):
+Now using orjson!
+Might complain when installing using pip.
+https://github.com/ijl/orjson#questions
+
 # Install Required Packages
 pip install -r requirements.txt
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 from http.server import CGIHTTPRequestHandler, HTTPServer
 import sys
-import api
+import api_std_scgi as api
 
 # So, basically, I'm too lazy to
 # go implement an actual Python server
@@ -62,7 +62,7 @@ class MyServer(CGIHTTPRequestHandler):
 
 def main():
     hostName = "127.0.0.1"
-    serverPort = 8080
+    serverPort = 8000
     print('Using below as bind address (specify 127.0.0.1 as first argument to program for local testing)')
     try:
         hostName = sys.argv[1] # Try to see if hostname specified

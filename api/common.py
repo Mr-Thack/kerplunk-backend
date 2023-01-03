@@ -1,4 +1,4 @@
-import ujson as js
+from orjson import dumps as dumpjson
 from dblib import db
 import secrets
 import time
@@ -40,7 +40,7 @@ def NYI(_): #NYI: Not Yet Implemented, or also, Doesn't Exist
 
 def RES(R,D='',C='200'): # A nice wrapper for easy respond
     R(C,[('Content-Type','text/plain;charset=utf-8')])
-    return [js.dumps(D).encode('utf-8')] # Return this to HTTP Server
+    return [dumpjson(D)] # Return this to HTTP Server
 
 
 

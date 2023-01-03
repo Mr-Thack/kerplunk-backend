@@ -61,12 +61,10 @@ This way the "hacker" doesn't know if the room even exists"""
 
 def PUT(D,R):
     sid : str = D.get('sid')
-    print(sid)
     name : str = D.get('name')
     pwd : str = D.get('pwd')
     if sid:
         email = SIDValidity(sid,D['ip'])
-        print(email)
         if email:
             indx : int = [chat.name for chat in chats].index(name)
             if indx == -1:
@@ -75,9 +73,7 @@ def PUT(D,R):
                 chat = chats[indx]
                 if (pwd or '') == chat.pwd:
                     # Join new user then send data
-                    print(get_field(email,'uname'))
                     chat.joiners.append(get_field(email,'uname'))
-                    print(chat.joiners)
                     return RES(R,{
                         'error':'',
                         'port':chat.port,

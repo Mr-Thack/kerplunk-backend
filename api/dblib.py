@@ -1,7 +1,7 @@
 import cython
 import lmdb
 import os
-import ujson as js
+from orjson import dumps as dumpjson, loads as loadjson
 
 PATH='../data/data/' # Default Path
 # I'm hoping this is only run once
@@ -45,7 +45,7 @@ class db:
         return txn.commit() # commit to mem
     def jput(self,key: str, value) -> bool: #returns success
         """Put Value as a JSON object"""
-        return self.put(key,js.dumps(value)) #dump the JSON to string
+        return self.put(key,dumpjson(value)) #dump the JSON to string
     def delt(self, key: str,isDB=True) -> bool: #delete a key
         """Delete value of a key from DB"""
         txn = self.env.begin(db=self.db,write=True) if isDB else self.env.begin(write=True)
@@ -64,9 +64,9 @@ class db:
             return str(rz,'utf-8')
     def jget(self, key: str):
         """Gets a JSON Object"""
-        rz = js.loads(self.get(key))
+        rz = self.get(key)
         if rz:
-            return js.loads(rz)
+            return loadjson(rz)
     def length(self,e=False):
         """Return amount of entries/dbs"""
         obj = self.env if e else self.db
