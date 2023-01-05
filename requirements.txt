@@ -1,7 +1,6 @@
-cython
-orjson
-zxcvbn
-lmdb
-requests
-shutil
-gunicorn
+fastapi
+uvicorn[standard]
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+httpx

@@ -1,60 +1,55 @@
-from common import RES,SIDValidity,NYI
-from user_operations import (set_field, valid_fields, valid_field, multi_get, multi_set)
+from dblib import db
 
-def GET(D,R):
-    #If the first half is altered, alter POST
-    error = '' # Start with no error
-    rfields = D.get('fields') # Could be 1, could be more
-    sid = D.get('sid')
-    if not sid:
-        error = 'Login! No SID/Retired SID'
-    elif rfields:
-        fields : [str] = []
-        if rfields.find(',') == -1:
-            # If only 1 field requested
-            if valid_field(rfields):
-                fields = [rfields]
-            else:
-                error = 'Field not supported'
-        else:
-            if not valid_fields(fields):
-                """
-                2) Python has a fancy method of checking if a is a subset of b
-                We can use <= to check if all key in rfields are a key in datas
-                """
-                error = 'Not Valid Data Fields'
-            else:
-                fields = rfields.split(',')
-        if fields:
-            email = SIDValidity(sid,D['ip'])
-            if email:
-                re = multi_get(email,fields) # init response
-                return RES(R,re)
-            else:
-                error = 'Email not found'
-        # No need for another else statement,
-        # bcz the above if elses already dealt with it
-    return RES(R,{'error':error})
+# Eventually hold email: username, fname+lname, phone#, school, classes
+user_data: db = db("UserData")
+# UserName, LegalName
+# Don't forget to change range to adjust for new length
+datanames = ('uname', 'lname')
+datas = dict(zip(datanames, range(len(datanames))))
+# We don't use an enum because the data is coming from users
+# And eval() could be used, but that'scould be a major vulnerability
+datanames = set(datanames)  # This will help with performance later
 
-def POST(D,R):
-    #If the first half is altered, alter GET
-    #Note that for name, we'd have to do fname,lname
-    re = '' # response
-    sid = D.get('sid')
-    if not sid:
-        re = 'No SID'
-    else:
-        email = SIDValidity(sid,D['ip'])
-        if not email:
-            re = 'SID Expired'
-        d = {} # data to change
-        for k,v in D.items():
-            if valid_field(k):
-                d[k] = v
-        if d:
-            return RES(R,{'changed':multi_set(email,d.items())})
-        else:
-            error = 'no field-value specified'
-    return RES(R,{'error':re})
 
-Users = (GET,POST,NYI,NYI)
+# Split by spaces
+def is_email_used(email: str):
+    return user_data.get(email)
+
+
+def make_user(email: str, username: str):
+    user_data.put(email, username + ' ')
+    # For each field supported, a space, then -1
+
+
+def valid_fields(fields: list[str]) -> bool:
+    return set(fields) <= datanames
+
+
+def get_field(email: str, field: str):
+    r = user_data.sget(email).split(' ')[datas[field]]
+    if field == datas['lname']:
+        r = r.replace('_', ' ')
+    return r
+
+
+def set_field(email: str, field: str, val):
+    fields_all: list[str] = user_data.sget(email).split(' ')
+    fields_all[datas[field]] = val  # datas is a dict that we'll use for enums
+    # Set up new str
+    nf: str = ' '.join(fields_all)
+    return user_data.put(email, nf)
+
+
+def multi_get(email: str, fs: list[str]) -> dict:  # Takes fields as "fs"
+    r = {}
+    for f in fs:
+        r[f] = get_field(email, f)
+    return r
+
+
+def multi_set(email: str, fs: dict) -> str:
+    r = []
+    for k, v in fs.items():
+        set_field(email, k, v)
+        r.append(k)
+    return ' '.join(r)

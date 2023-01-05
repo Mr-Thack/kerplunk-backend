@@ -1,59 +1,57 @@
-from common import RES, makeSID, NYI
-from user_operations import make_user, is_email_used
-# import zxcvbn  # To check if the password's good
+from fastapi import HTTPException, Request, Depends
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from bcrypt import hashpw
+from sid import makeSID
+from users import make_user, is_email_used
 from dblib import db
 
-creds: db = db("Credentials")
-# Open a file called Credentials to store hash and salt and username
-
+creds: db = db('Credentials')
 """
-We use username as key for Credentials
-bcz sending email over internet bad idea.
-But we keep value of the username key as "email salt hash"
+creds only holds enough information for authentication.
+Actual user data is stored elsewhere
+Data is stored as:
+ahash: email + ' ' + uname
 """
 
+AUTH_EXCEPTION = HTTPException(status_code=401,
+                               detail='Incorrect username or password')
+HASH_SALT = b'$2b$12$lDGmZwBbuqU9DYMFxGRWRe'
 
-class Auth:
-    async def on_get(self, req, res):
-        D = req.params
-        username = D.get('username')
-        thash = D.get('hash')
-        error = 'Missing Username'
-        # t-hash for test, k-hash for known
-        if username:
-            data = creds.sget(username)
-            if data:
-                (email, salt, khash) = data.split(' ')
-                if thash == khash:
-                    res.media = {'sid': makeSID(email, D['ip'])}
-                else:
-                    res.media = {'salt': salt}  # Get the 1st part
-                    # TODO: make HTTP errors actually line up with the standard
-                    # TODO: give false salt/hash to hackers
-            else:
-                error = 'Sign Up!'
-        res.media = {'error': error}
 
-def POST(D,R):
-    error = '' # we start with no errors
-    email = D.get('email')
-    username = D.get('username')
-    salt = D.get('salt')
-    phash = D.get('hash')
-    if not email:
-        error='Missing email'
-    elif is_email_used(email):
-        error='Email Already in use'
-    elif not salt:
-        error='Missing salt'
-    elif not phash:
-        error='Missing hash'
-    elif not username:
-        error='Missing username'
-    else:
-        # If all four (email, username, salt, and hash) and username not registered
-        creds.put(username,email + ' ' + salt + ' ' + phash) # Make a new entry
-        make_user(email,username) # Set up user data
-    return RES(R,{'error':error})
+# We want a username and a hash of their pwd and email on signup
+class SignUpData(BaseModel):
+    uname: str
+    pwd: str
+    email: str
 
-# Auth = (GET,POST,NYI,NYI) # See operations.py for more info on how it's organized
+
+def get_user(uhash: str) -> list[str, str]:
+    data = creds.sget(uhash)
+    if data:
+        return data.split(' ')
+    raise AUTH_EXCEPTION
+
+
+def gen_hash(pwd: str) -> str:
+    return hashpw(pwd.encode('utf-8'), HASH_SALT).decode('utf-8')
+
+
+async def login_user(req: Request, fd: OAuth2PasswordRequestForm = Depends()):
+    ahash: str = gen_hash(fd.password)
+    user = get_user(ahash)
+    if user and user[1] == fd.username:
+        # This won't work when running behind a proxy
+        return makeSID(user[0], req.client.host)
+        # req.client = (client_ip_addr, client_port)
+    raise AUTH_EXCEPTION
+
+
+async def signup_user(data: SignUpData):
+    if is_email_used(data.email):
+        raise HTTPException(status_code=400, detail='Email already in use!')
+    ahash: str = gen_hash(data.pwd)
+    # Change it so that it uses a userid
+    creds.put(ahash, data.email + ' ' + data.uname)
+    make_user(data.email, data.uname)
+    return True

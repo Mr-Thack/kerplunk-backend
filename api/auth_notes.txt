@@ -1,0 +1,13 @@
+The way that this works for sign up:
+1. Client sends uname, email, & pwd OVER HTTPS
+2. we salt & hash pwd and store in creds, which only holds creds
+
+For Sign In (Done through OAuth2):
+1. Client sends uname, pwd, & permissions through headers
+2. Server Calculates & Stores Session ID In RAM (Token)
+3. Server Sends Back Session ID (Token)
+
+For Auth (Using Token):
+Client keeps sending token in header
+
+You know, we could've done this without OAuth2, but this was easier
