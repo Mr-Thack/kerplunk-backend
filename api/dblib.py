@@ -1,5 +1,4 @@
 import lmdb
-from dataclasses import dataclass
 
 PATH = '../data/'  # Default Path
 # I'm hoping this is only run once
@@ -35,10 +34,6 @@ class db:
             print('ERR OPEN DB ' + self.name + ' @ ' + self.env.path() + ' BC')
             print(e)
             quit(0)
-
-
-
-
 
     def __split2objstr__(self, vals: list[str]):
         s = self.schema(**dict(zip(self.fields, vals)))
