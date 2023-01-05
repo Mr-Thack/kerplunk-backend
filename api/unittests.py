@@ -218,11 +218,11 @@ class Test030_Chat_Rooms(unittest.TestCase):
 if __name__ == '__main__':
     if not PERF:
         # Clear data directory
-        rmtree('../data/data/')
+        rmtree('../data/')
         # NOTE: We need to eventually implement our own rmtree,
         # because it's a waste of bandwidth installing a whole library
         # to do something relatively simple, recursively removing a directory
-        mkdir('../data/data/')
+        mkdir('../data/')
     # Start Server as daemon (dies when script ends) on seperate thread
     # server = Thread(target=server_main)
     # server.daemon = True

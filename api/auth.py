@@ -4,9 +4,17 @@ from pydantic import BaseModel
 from bcrypt import hashpw
 from sid import makeSID
 from users import make_user, is_email_used
-from dblib import db
+from dblib import db, BaseSchema
+from dataclasses import dataclass
 
-creds: db = db('Credentials')
+
+@dataclass
+class CredsSchema(BaseSchema):
+    uuid: str
+    uname: str
+
+
+creds = db('Credentials', CredsSchema)
 """
 creds only holds enough information for authentication.
 Actual user data is stored elsewhere
@@ -35,9 +43,9 @@ class SignUpData(BaseModel):
 
 
 def get_user(ahash: str) -> list[str, str]:
-    data = creds.sget(ahash)
+    data = creds[ahash]
     if data:
-        return data.split(' ')
+        return data
     raise AUTH_EXCEPTION
 
 
@@ -47,10 +55,10 @@ def gen_hash(pwd: str) -> str:
 
 async def login_user(req: Request, fd: OAuth2PasswordRequestForm = Depends()):
     ahash: str = gen_hash(fd.password)
-    user = get_user(ahash)
-    if user and user[1] == fd.username:
+    user: CredsSchema = get_user(ahash)
+    if user and user.uname == fd.username:
         # This won't work when running behind a proxy
-        return makeSID(user[0], req.client.host)
+        return makeSID(user.uuid, req.client.host)
         # req.client = (client_ip_addr, client_port)
     raise AUTH_EXCEPTION
 
@@ -61,5 +69,5 @@ async def signup_user(data: SignUpData):
     ahash: str = gen_hash(data.pwd)
     # Change it so that it uses a userid
     uuid = make_user(data.email, data.uname)
-    creds.put(ahash, uuid + ' ' + data.uname)
+    creds[ahash] = CredsSchema(uuid, data.uname)
     return True

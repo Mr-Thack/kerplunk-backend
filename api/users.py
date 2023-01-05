@@ -1,19 +1,20 @@
-from dblib import db
+from dblib import db, BaseSchema
 from uuid import uuid1
 from fastapi import HTTPException
+from dataclasses import dataclass
+
+
+@dataclass
+class UserSchema(BaseSchema):
+    email: str
+    uname: str
+    lname: str | None = None
+
+
 # Eventually hold email: username, fname+lname, phone#, school, classes
-user_data: db = db("UserData")
-# UserName, LegalName
-# Don't forget to change range to adjust for new length
-datanames = ('uname', 'lname', 'email')
-datas = dict(zip(datanames, range(len(datanames))))
-# We don't use an enum because the data is coming from users
-# And eval() could be used, but that'scould be a major vulnerability
-datanames = set(datanames)  # This will help with performance later
-# because we will be calling datas instead of datanames
+user_data: db = db("UserData", UserSchema)
 
 
-# Split by spaces
 def is_email_used(email: str):
     # Oh woopsie, this'll be hard to fix
     # return user_data.sget(email)
@@ -22,19 +23,17 @@ def is_email_used(email: str):
 
 def make_user(email: str, username: str) -> str:
     uuid: str = str(uuid1())
-    user_data.put(uuid, ' '.join((username, email)))
+    user_data[uuid] = UserSchema(email, username)
     return uuid
 
 
 def valid_fields(fields: list[str]) -> bool:
-    return set(fields) <= datanames
+    return set(fields) <= set(UserSchema.__annotations__.keys())
 
 
 def get_field(uuid: str, field: str):
-    r = user_data.sget(uuid).split(' ')[datas[field]]
-    if field == datas['lname']:
-        r = r.replace('_', ' ')
-        # Probably should error out instead
+    # We could add some sort of data validation/parsing here
+    r = user_data[uuid, field]
     return r
 
 
@@ -42,11 +41,8 @@ def set_field(uuid: str, field: str, val):
     if field == 'lname' and field.find(' ') != -1:
         raise HTTPException(status_code=401,
                             detail='No space characters allowed!')
-    fields_all: list[str] = user_data.sget(uuid).split(' ')
-    fields_all[datas[field]] = val  # datas is a dict that we'll use for enums
-    # Set up new str
-    nf: str = ' '.join(fields_all)
-    return user_data.put(uuid, nf)
+    user_data[uuid, field] = val
+    return True
 
 
 def multi_get(uuid: str, fs: list[str]) -> dict:  # Takes fields as "fs"

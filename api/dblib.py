@@ -1,26 +1,32 @@
 import lmdb
-from orjson import dumps as dumpjson, loads as loadjson
+from dataclasses import dataclass
 
-PATH = '../data/data/'  # Default Path
+PATH = '../data/'  # Default Path
 # I'm hoping this is only run once
 # If this is being run multiple times, tell me plz -Abdul Muqeet
 print('OPENING ENVIRONMENT')
 mainenv = lmdb.open(PATH + 'main', max_dbs=4, writemap=True, subdir=True)
-chatenv = lmdb.open(PATH + 'chats', map_size=(10 << 20)*10, max_dbs=10, writemap=True, subdir=True)
+chatenv = lmdb.open(PATH + 'chats', map_size=(10 << 20)*10, max_dbs=100,
+                    writemap=True, subdir=True)
+tmpenv = lmdb.open(PATH + 'userdata', max_dbs=1, writemap=True,
+                   sync=False, subdir=True)
 
 
 # Not sure what the safety concerns of writemap=True are, but they exist!
 # This is a nice big wrapper for LMDB
 class db:
-    def __init__(self, name: str, tmp: bool = False, chat: bool = False):
+    def __init__(self, name: str, schema,
+                 env=mainenv, chat=False, tmp=False, seperator=' '):
         self.name = name
-        """
+        self.schema = schema
+        self.fields = tuple(schema.__annotations__.keys())
+        self.seperator = seperator
         if tmp:
-            self.env = lmdb.open('/tmp/Data', max_dbs=1, map_size=10 << 20, writemap=True, sync=False, subdir=True)
+            self.env = tmpenv
         elif chat:
             self.env = chatenv
-        else:"""
-        self.env = mainenv
+        else:
+            self.env = mainenv
         print('OPENING DB ' + self.name)
         try:
             # The key is set to name
@@ -30,70 +36,124 @@ class db:
             print(e)
             quit(0)
 
-    """ Commented out bcz never used
-    def eput(self, key: str, value: str):
-        "Writing Directly to the environment, not to a sub-db"
-        txn = self.env.begin(write=True)
-        txn.put(bytes(key, 'utf-8'), bytes(value, 'utf-8'))
-        return txn.commit()
-    """
 
-    def put(self, key: str, value: str):
+
+
+
+    def __split2objstr__(self, vals: list[str]):
+        s = self.schema(**dict(zip(self.fields, vals)))
+        return s
+
+    def __setitem__(self, key: str, value):
         """Simplified Writing To Disk"""
         txn = self.env.begin(db=self.db, write=True)  # write to disk
-        txn.put(bytes(key, 'utf-8'), bytes(value, 'utf-8'))
+        if isinstance(key, str):
+            # Whether str(str) doesn't error somehow, so this's fine
+            txn.put(bytes(key, 'utf-8'), bytes(str(value), 'utf-8'))
+        else:
+            if key[1] not in self.fields:
+                raise KeyError
+            toput = str(txn.get(bytes(key[0], 'utf-8')),
+                        'utf-8').split(self.seperator)
+            toput[self.fields.index(key[1])] = value
+            txn.put(bytes(key[0], 'utf-8'), bytes(str(self.__split2objstr__(toput)), 'utf-8'))
         return txn.commit()  # commit to mem
 
-    """ Commented out bcz never used
-    def jput(self, key: str, value):  # returns success
-        "Put Value as a JSON object"
-        return self.put(key, dumpjson(value))  # dump the JSON to string
-    """
-
-    def delt(self, key: str, isDB=True) -> bool:  # delete a key
+    def __delitem__(self, key: str):
         """Delete value of a key from DB"""
-        txn = self.env.begin(db=self.db, write=True) if isDB else self.env.begin(write=True)
-        txn.delete(bytes(key, 'utf-8'))  # key must be in utf8?
+        txn = self.env.begin(db=self.db, write=True)
+        txn.delete(bytes(key, 'utf-8'))
         return txn.commit()
 
-    """ Commented out bcz never used
-    def eget(self, key: str):
-        "Get a char buf from env not db"
-        return self.env.begin().get(bytes(key, 'utf-8'))
-    """
+    def __formatget__(self, val: str | None):
+        if val is None:
+            return None
+        return self.__split2objstr__(val.split(self.seperator))
 
-    def get(self, key: str):
-        """Gets a Char Buffer"""
-        return self.env.begin(db=self.db).get(bytes(key, 'utf-8'))
+    def __coreget__(self, key: str):
+        return str(self.env.begin(db=self.db)
+                   .get(bytes(key, 'utf-8')), 'utf-8')
 
-    def sget(self, key: str) -> str:
+    def __getitem__(self, key: str | tuple[str, str]):
         """Gets a String"""
-        rz = self.get(key)
-        if rz:
-            return str(rz, 'utf-8')
+        if isinstance(key, str):
+            if self.schema:
+                s = self.__coreget__(key)
+                return self.__formatget__(s)
+            else:
+                return self.__coreget_(key)
+        else:
+            if key[1] not in self.fields:
+                raise KeyError
+            indx: int = self.fields.index(key[1])
+            r = self.__coreget__(key[0])
+            if r is None:
+                return None
+            else:
+                r = r.split(self.seperator)
+                return r[indx]
 
-    """ Commented out bcz never used
-    def jget(self, key: str):
-        "Gets a JSON Object"
-        rz = self.get(key)
-        if rz:
-            return loadjson(rz)
-    """
-
-    def length(self, e=False):
+    def __len__(self, e=False):
         """Return amount of entries/dbs"""
         obj = self.env if e else self.db
         return obj.stat()['entries']
 
+    def __iter__(self):
+        self.cursor = self.env.begin(db=self.db).cursor()
+        return self
+
+    def __next__(self):
+        if not self.cursor.next():
+            self.cursor.close()
+            raise StopIteration
+        return (str(self.cursor.key(), 'utf-8'),
+                str(self.cursor.value(), 'utf-8'))
+
+    def __repr__(self):
+        ret = ''
+        for k, v in self.env.begin(db=self.db).cursor():
+            ret += str(k, 'utf-8') + ':' + str(v, 'utf-8') + "\n"
+        return ret
+
     def display(self):
         """To Debug all values/dbs"""
+        print('START DEBUG')
         print(self.env.stat())
-        txn = self.env.begin(db=self.db)
-        cur = txn.cursor()  # dunno what this does, I guess it gets all indices
-        for k, v in cur:  # I found this one on the internet
-            print('Key: ' + str(k, 'utf-8'))
-            print('Value: ' + str(self.get(str(k, 'utf-8')), 'utf-8') + "\n")
+        print(self)
+        print('END DEBUG')
 
+    """
     def close(self):
+        # This is for any cleaning up that we would need to do
         # This should be done, but it doesn't seem to cause harm if it isn't
         self.db.close()
+    """
+
+
+# NOTE: As of now, BaseSchema doesn't work as intentded
+# seperator is not existant
+
+class BaseSchema():
+    def __str__(self):
+        return ' '.join([val or ' ' for val in self.__dict__.values()])
+
+"""
+# Isn't this nice Test Code?
+@dataclass
+class TestDBSchema(BaseSchema):
+    uname: str
+    fname: str
+
+
+testdb = db('test4', TestDBSchema, tmp=True)
+
+testdb['u1'] = TestDBSchema('Name1', 'FName1')
+testdb['u2'] = TestDBSchema('Name2', 'FName2')
+testdb['u3'] = TestDBSchema('Name3', 'FName3')
+del testdb['u3']
+print(testdb['u1', 'uname'])
+testdb['u2', 'uname'] = 'NameNew'
+print(testdb['u2', 'uname'])
+for k, v in testdb:
+   print(f'{k}:{v}')
+"""
