@@ -11,7 +11,15 @@ creds: db = db('Credentials')
 creds only holds enough information for authentication.
 Actual user data is stored elsewhere
 Data is stored as:
-ahash: email + ' ' + uname
+ahash: uuid1 + ' ' + uname
+The ahash is used after the pwd is hashed.
+uuid1 is used internally as the user's id
+the uname is used so that on login we can check if the uname provided is right
+It should be noted that UUID1 has one problem. It uses our MAC address.
+This could become a privacy concern if we get hacked. However,
+I'm using UUID1 because UUID1 also provides a timestamp, which we can later use
+in order to retrieve when the user signed up. So basically, if we're already
+storing stuff, why don't we just kill 2 birds with 1 stone?
 """
 
 AUTH_EXCEPTION = HTTPException(status_code=401,
@@ -26,8 +34,8 @@ class SignUpData(BaseModel):
     email: str
 
 
-def get_user(uhash: str) -> list[str, str]:
-    data = creds.sget(uhash)
+def get_user(ahash: str) -> list[str, str]:
+    data = creds.sget(ahash)
     if data:
         return data.split(' ')
     raise AUTH_EXCEPTION
@@ -52,6 +60,6 @@ async def signup_user(data: SignUpData):
         raise HTTPException(status_code=400, detail='Email already in use!')
     ahash: str = gen_hash(data.pwd)
     # Change it so that it uses a userid
-    creds.put(ahash, data.email + ' ' + data.uname)
-    make_user(data.email, data.uname)
+    uuid = make_user(data.email, data.uname)
+    creds.put(ahash, uuid + ' ' + data.uname)
     return True

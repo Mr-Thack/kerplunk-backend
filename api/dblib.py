@@ -12,18 +12,15 @@ chatenv = lmdb.open(PATH + 'chats', map_size=(10 << 20)*10, max_dbs=10, writemap
 # Not sure what the safety concerns of writemap=True are, but they exist!
 # This is a nice big wrapper for LMDB
 class db:
-    def __init__(self, name, tmp=False, chat=False):
+    def __init__(self, name: str, tmp: bool = False, chat: bool = False):
         self.name = name
+        """
         if tmp:
             self.env = lmdb.open('/tmp/Data', max_dbs=1, map_size=10 << 20, writemap=True, sync=False, subdir=True)
         elif chat:
             self.env = chatenv
-        else:
-            self.env = mainenv
-        self.initialize()
-
-    def initialize(self):
-        """Open a Database (Equivalent of an SQL Table)"""
+        else:"""
+        self.env = mainenv
         print('OPENING DB ' + self.name)
         try:
             # The key is set to name
@@ -33,11 +30,13 @@ class db:
             print(e)
             quit(0)
 
+    """ Commented out bcz never used
     def eput(self, key: str, value: str):
-        """Writing Directly to the environment, not to a sub-db"""
+        "Writing Directly to the environment, not to a sub-db"
         txn = self.env.begin(write=True)
         txn.put(bytes(key, 'utf-8'), bytes(value, 'utf-8'))
         return txn.commit()
+    """
 
     def put(self, key: str, value: str):
         """Simplified Writing To Disk"""
@@ -45,9 +44,11 @@ class db:
         txn.put(bytes(key, 'utf-8'), bytes(value, 'utf-8'))
         return txn.commit()  # commit to mem
 
+    """ Commented out bcz never used
     def jput(self, key: str, value):  # returns success
-        """Put Value as a JSON object"""
+        "Put Value as a JSON object"
         return self.put(key, dumpjson(value))  # dump the JSON to string
+    """
 
     def delt(self, key: str, isDB=True) -> bool:  # delete a key
         """Delete value of a key from DB"""
@@ -55,9 +56,11 @@ class db:
         txn.delete(bytes(key, 'utf-8'))  # key must be in utf8?
         return txn.commit()
 
+    """ Commented out bcz never used
     def eget(self, key: str):
-        """Get a char buf from env not db"""
+        "Get a char buf from env not db"
         return self.env.begin().get(bytes(key, 'utf-8'))
+    """
 
     def get(self, key: str):
         """Gets a Char Buffer"""
@@ -69,11 +72,13 @@ class db:
         if rz:
             return str(rz, 'utf-8')
 
+    """ Commented out bcz never used
     def jget(self, key: str):
-        """Gets a JSON Object"""
+        "Gets a JSON Object"
         rz = self.get(key)
         if rz:
             return loadjson(rz)
+    """
 
     def length(self, e=False):
         """Return amount of entries/dbs"""

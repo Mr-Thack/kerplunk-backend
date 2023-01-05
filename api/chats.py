@@ -12,7 +12,7 @@ class InitChatRoomData(BaseModel):
 
 
 class ChatRoom(InitChatRoomData):
-    owner: str
+    owner: str  # This is a UUID str
     cid: str
     joiners: list[str] = []
 
@@ -29,10 +29,11 @@ def list_chats() -> str:
 
 
 def create_chatroom(data: InitChatRoomData, owner: str):
+    # We take owner as a UUID str
     if data.name in chats:
         raise HTTPException(status_code=403, detail='Name already in use')
     new_chatrm = ChatRoom(cid=token_urlsafe(32),
-                          owner=get_field(owner, 'uname'), **data.__dict__)
+                          owner=owner, **data.__dict__)
     chats[new_chatrm.name] = new_chatrm  # Works for now, later get use the db
     if True:
         return new_chatrm.cid
@@ -40,13 +41,13 @@ def create_chatroom(data: InitChatRoomData, owner: str):
         raise HTTPException(status_code=401, detail='Get assistance!')
 
 
-def add_user_to_chatroom(email: str, name: str, pwd: str | None):
+def add_user_to_chatroom(uuid: str, name: str, pwd: str | None):
     chatrm = chats.get(name)
     if not chatrm or (chatrm.pwd and chatrm.pwd != pwd):
         raise HTTPException(status_code=403, detail='Invalid name or pwd')
-    chatrm.joiners.append(get_field(email, 'uname'))
+    chatrm.joiners.append(uuid)
     return {
             'cid': chatrm.cid,
-            'owner': chatrm.owner,
-            'joiners': chatrm.joiners
+            'owner': get_field(chatrm.owner, 'uname'),
+            'joiners': [get_field(joiner, 'uname') for joiner in chatrm.joiners]
             }
