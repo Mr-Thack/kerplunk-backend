@@ -1,11 +1,10 @@
-from dblib import db, BaseSchema
+from dblib import db
 from uuid import uuid1
-from fastapi import HTTPException
 from dataclasses import dataclass
 
 
 @dataclass
-class UserSchema(BaseSchema):
+class UserSchema():
     email: str
     uname: str
     lname: str | None = None
@@ -27,22 +26,22 @@ def make_user(email: str, username: str) -> str:
     return uuid
 
 
-def valid_fields(fields: list[str]) -> bool:
+def valid_keys(fields: list[str]) -> bool:
     return set(fields) <= set(UserSchema.__annotations__.keys())
 
 
+def valid_fields(vals: dict) -> str:
+    """Returns empty string on success, str if failure"""
+    if valid_keys(vals.keys()):
+        return ''
+
+
 def get_field(uuid: str, field: str):
-    # We could add some sort of data validation/parsing here
-    r = user_data[uuid, field]
-    return r
+    return user_data[uuid, field]
 
 
 def set_field(uuid: str, field: str, val):
-    if field == 'lname' and field.find(' ') != -1:
-        raise HTTPException(status_code=401,
-                            detail='No space characters allowed!')
     user_data[uuid, field] = val
-    return True
 
 
 def multi_get(uuid: str, fs: list[str]) -> dict:  # Takes fields as "fs"

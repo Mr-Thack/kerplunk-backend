@@ -1,15 +1,13 @@
-from fastapi import HTTPException, Request, Depends
-from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from bcrypt import hashpw
 from sid import makeSID
 from users import make_user, is_email_used
-from dblib import db, BaseSchema
+from dblib import db
 from dataclasses import dataclass
 
 
 @dataclass
-class CredsSchema(BaseSchema):
+class CredsSchema():
     uuid: str
     uname: str
 
@@ -30,8 +28,6 @@ in order to retrieve when the user signed up. So basically, if we're already
 storing stuff, why don't we just kill 2 birds with 1 stone?
 """
 
-AUTH_EXCEPTION = HTTPException(status_code=401,
-                               detail='Incorrect username or password')
 HASH_SALT = b'$2b$12$lDGmZwBbuqU9DYMFxGRWRe'
 
 
@@ -46,28 +42,24 @@ def get_user(ahash: str) -> list[str, str]:
     data = creds[ahash]
     if data:
         return data
-    raise AUTH_EXCEPTION
 
 
 def gen_hash(pwd: str) -> str:
     return hashpw(pwd.encode('utf-8'), HASH_SALT).decode('utf-8')
 
 
-async def login_user(req: Request, fd: OAuth2PasswordRequestForm = Depends()):
-    ahash: str = gen_hash(fd.password)
+def login_user(uname: str, pwd: str, ip: str):
+    ahash: str = gen_hash(pwd)
     user: CredsSchema = get_user(ahash)
-    if user and user.uname == fd.username:
+    if user and user.uname == uname:
         # This won't work when running behind a proxy
-        return makeSID(user.uuid, req.client.host)
+        return makeSID(user.uuid, ip)
         # req.client = (client_ip_addr, client_port)
-    raise AUTH_EXCEPTION
 
 
 async def signup_user(data: SignUpData):
-    if is_email_used(data.email):
-        raise HTTPException(status_code=400, detail='Email already in use!')
-    ahash: str = gen_hash(data.pwd)
-    # Change it so that it uses a userid
-    uuid = make_user(data.email, data.uname)
-    creds[ahash] = CredsSchema(uuid, data.uname)
-    return True
+    if not is_email_used(data.email):
+        ahash: str = gen_hash(data.pwd)
+        uuid = make_user(data.email, data.uname)
+        creds[ahash] = CredsSchema(uuid, data.uname)
+        return True

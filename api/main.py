@@ -1,22 +1,25 @@
-from fastapi import FastAPI, Depends, Request, Query, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import (Depends, FastAPI, Request, Query, WebSocket,
+                     WebSocketException, WebSocketDisconnect, HTTPException)
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from auth import login_user, signup_user
-from users import multi_get, multi_set, valid_fields
+from users import multi_get, multi_set, valid_keys, valid_fields
 from chats import (list_chats, create_chatroom, InitChatRoomData,
-                   add_user_to_chatroom)
+                   usr_in_chatroom, add_user_to_chatroom,
+                   on_user_leave_chatroom, join_chatroom_user_event_loop,
+                   on_user_join_chatroom)
 from sid import SIDValidity
-
 
 app = FastAPI()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
 
-def get_uuid(req: Request, sid: str = Depends(oauth2_scheme)):
-    uuid = SIDValidity(sid, req.client.host)
+def oauth_uuid(req: Request, token: str = Depends(oauth2_scheme)):
+    """Check if logged in for HTTP"""
+    uuid = SIDValidity(token, req.client.host)
     if uuid:
         return uuid
     else:
-        raise HTTPException(status_code=401, detail='SID/Token Invalid')
+        raise HTTPException(status_code=401, detail='Token Invalid/Expired')
 
 
 @app.post('/signup')
@@ -24,28 +27,32 @@ async def signup(success: bool = Depends(signup_user)):
     if success:
         return success
     else:
-        raise HTTPException(status_code=400,
-                            detail='Dunno, some sort of error')
+        raise HTTPException(status_code=401,
+                            detail='Email already in use!')
 
 
 @app.post('/login')
-async def login(token: str = Depends(login_user)):
+async def login(req: Request, fd: OAuth2PasswordRequestForm = Depends()):
+    token = login_user(fd.username, fd.password, req.client.host)
+    if not token:
+        raise HTTPException(status_code=401,
+                            detail='Incorrect username or password')
     return {'access_token': token, 'token_type': 'bearer'}
 
 
 @app.get('/userme')
 async def user_get_field(fields: list[str] = Query(),
-                         uuid: str = Depends(get_uuid)):
-    if valid_fields(fields):
-        return multi_get(uuid, fields)
-    raise HTTPException(status_code=400, detail='Invalid Fields')
+                         uuid: str = Depends(oauth_uuid)):
+    if not valid_keys(fields):
+        raise HTTPException(status_code=400, detail='Invalid Fields')
+    return multi_get(uuid, fields)
 
 
 @app.post('/userme')
-async def user_set_field(fields: dict, uuid: str = Depends(get_uuid)):
-    if valid_fields(fields.keys()):
-        return {'changed': multi_set(uuid, fields)}
-    raise HTTPException(status_code=400, detail='Invalid Fields')
+async def user_set_field(fields: dict, uuid: str = Depends(oauth_uuid)):
+    if valid_fields(fields):
+        raise HTTPException(status_code=400, detail='Invalid Fields')
+    return {'changed': multi_set(uuid, fields)}
 
 
 @app.get('/chats')
@@ -55,11 +62,42 @@ async def ret_list_chats():
 
 @app.post('/chats')
 async def open_chatroom(room_data: InitChatRoomData,
-                        uuid: str = Depends(get_uuid)):
-    return {'cid': create_chatroom(room_data, uuid)}
+                        uuid: str = Depends(oauth_uuid)):
+    cid = create_chatroom(room_data, uuid)
+    if cid:
+        return {'cid': cid}
+    else:
+        raise HTTPException(status_code=400, detail='Chatroom name in use')
 
 
 @app.patch('/chats')
 async def user_join_chatroom(name: str, pwd: str | None = None,
-                             uuid: str = Depends(get_uuid)):
-    return add_user_to_chatroom(uuid, name, pwd)
+                             uuid: str = Depends(oauth_uuid)):
+    room_data = add_user_to_chatroom(uuid, name, pwd)
+    if room_data:
+        return room_data
+    else:
+        raise HTTPException(status_code=403,
+                            detail='Invalid chatroom name or pwd')
+
+
+# We'll only be using this for chat room, God willing,
+# So, it's OK to integrate both token authentication
+# and authentication for if the given UUID is allowed in a certain chat_room
+# To get permission to be allowed, they'll have to PATCH /chats
+async def ws_uuid(ws: WebSocket, cid: str, token: str):
+    uuid = SIDValidity(token, ws.client.host)
+    if not uuid or not usr_in_chatroom(uuid, cid):
+        raise WebSocketException(code=1008)
+    return (cid, uuid)
+
+
+@app.websocket('/chats/{cid}')
+async def tmpchatroom(ws: WebSocket, cid_uuid=Depends(ws_uuid)):
+    (cid, uuid) = cid_uuid  # Tried putting (cid, uuid) in params; won't work?
+    await on_user_join_chatroom(cid, uuid, ws)
+    try:
+        while True:
+            await join_chatroom_user_event_loop(uuid, cid)
+    except WebSocketDisconnect:
+        await on_user_leave_chatroom(uuid, cid)

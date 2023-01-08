@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 import unittest
 from dataclasses import dataclass, field
+
 # ALERT: Set to true for performance test
 PERF = False
+LONGDEBUG = False  # Make true, if you wanna run these tests then your own l8tr
 # All it does is not load our Kerplunk backend,
 # and thus assumes that our backend is already running
 
@@ -12,8 +14,10 @@ supported_fields = ('uname', 'lname')
 
 if PERF:
     from httpx import get, post, put, delete
+    # uuuh, someone's gotta write the web socket test wrapper
 else:
-    from fastapi.testclient import TestClient
+    from starlette.testclient import (TestClient,
+                                      WebSocketTestSession as WebSocket)
     from main import app
     from os import mkdir
     from shutil import rmtree
@@ -54,6 +58,8 @@ class User:
     email: str
     sid: str
     lname: str
+    ws: WebSocket = None
+    chat_log: [str] = None  # Cur copy of chat, ideally same in each joined user
 
 
 @dataclass
@@ -171,7 +177,8 @@ class Test020_User_Data(unittest.TestCase):
         """Change all values"""
         r = client.post('/userme', json=altvals, headers=genhed(user1)).json()
         self.assertIn('changed', r)
-        self.assertSetEqual(set(supported_fields), set(r['changed'].split(' ')))
+        self.assertSetEqual(set(supported_fields),
+                            set(r['changed'].split(' ')))
 
     def test120_check_multipost(self):
         """Check if all new values are properly set, after 110_multipost"""
@@ -206,17 +213,65 @@ class Test030_Chat_Rooms(unittest.TestCase):
         first time a user joins the chat"""
         chat: Chat = chat_rooms[0]
         r = client.patch('/chats', params={
-            'name': chat_rooms[0].name
-            }, headers=genhed(user2)).json()
+            'name': chat.name
+            }, headers=genhed(user1)).json()
         self.assertEqual(r['owner'], user1.uname)
         self.assertEqual(r['cid'], chat.cid)
-        self.assertListEqual(r['joiners'], [user2.uname])
+        self.assertListEqual(r['joiners'], [user1.uname])
         chat.owner = r['owner']
         chat.pwd = ''
+        # Now we'll connect to the websocket port and get our messages so far
+        # join_wschat(user1, chat)
+        # self.assertTrue(user1.chat_log)
+
+    def test040_2nd_user_join_chat(self):
+        """Check if users other than the owner can join"""
+        chat: Chat = chat_rooms[0]
+        r = client.patch('/chats', params={
+            'name': chat.name}, headers=genhed(user2)).json()
+        self.assertEqual(r['joiners'], [user1.uname, user2.uname])
+
+    def test050_1st_user_send_msg(self):
+        """Check sending & recieving message"""
+        chat = chat_rooms[0]
+        baseuri = f'/chats/{chat.cid}?token='
+        msg = 'Hello from owner!'
+        with client.websocket_connect(baseuri + user1.sid) as ws:
+            user1.chat_log = ws.receive_text().split('\x1e')
+            ws.send_text(msg)
+            resp = ws.receive_text()
+            self.assertTrue(resp)
+            self.assertTrue(user1.chat_log)
+            user1.chat_log.append(msg)
+
+    def test060_2nd_user_send_and_recv_msg(self):
+        """Check if 2nd user has received the 1st msg, and sending a 2nd"""
+        chat = chat_rooms[0]
+        baseuri = f'/chats/{chat.cid}?token='
+        msg = 'Hello Back!'
+        with client.websocket_connect(baseuri + user2.sid) as ws:
+            user2.chat_log = ws.receive_text().split('\x1e')
+            # User1's chat log should have everything but the last 2 messages
+            # the ones that say "User1 left" and "User2 joined"
+            self.assertListEqual(user1.chat_log, user2.chat_log[:-2])
+            ws.send_text(msg)
+            resp = ws.receive_text()
+            self.assertIsNotNone(resp)
+            user2.chat_log.append(msg)
+        with client.websocket_connect(baseuri + user1.sid) as ws:
+            txt = ws.receive_text().split('\x1e')
+            # Now we're checking if that was received
+            # A potentially really helpful performance fix could be to
+            # only send what's been changed instead of sending all
+            # I don't think it will matter for now,
+            # but this should be top prioerity;
+            # It's probably the largest performance killer we've got
+            user1.chat_log = txt
+            self.assertListEqual(user1.chat_log[:-2], user2.chat_log)
 
 
 if __name__ == '__main__':
-    if not PERF:
+    if not PERF and not LONGDEBUG:
         # Clear data directory
         rmtree('../data/')
         # NOTE: We need to eventually implement our own rmtree,
