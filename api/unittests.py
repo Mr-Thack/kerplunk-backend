@@ -4,7 +4,8 @@ from dataclasses import dataclass, field
 
 # ALERT: Set to true for performance test
 PERF = False
-LONGDEBUG = False  # Make true, if you wanna run these tests then your own l8tr
+LONGDEBUG = True #Change to false if using Linux
+# Make true, if you wanna run these tests then your own l8tr
 # All it does is not load our Kerplunk backend,
 # and thus assumes that our backend is already running
 
