@@ -3,6 +3,9 @@ The backend for Kerplunk, written in Python ASGI.
 It'll probably run under Lighttpd
 Also, note that this requires atleast Python 3.9
 
+# More Documentation:
+Run the server, then go to http://localhost:8000/docs
+
 # Alert(s):
 We're using FastAPI, read their documentation!
 For sockets, we're using FastAPI which uses Starlette.

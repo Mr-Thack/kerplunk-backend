@@ -1,6 +1,7 @@
 from fastapi import (Depends, FastAPI, Request, Query, WebSocket,
                      WebSocketException, WebSocketDisconnect, HTTPException)
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from auth import login_user, signup_user
 from users import multi_get, multi_set, valid_keys, valid_fields
 from chats import (list_chats, create_chatroom, InitChatRoomData,
@@ -10,6 +11,16 @@ from chats import (list_chats, create_chatroom, InitChatRoomData,
 from sid import SIDValidity
 
 app = FastAPI()
+# Enable Cross Origin Resource Sharing,
+# Since we don't have a domain and the IP keeps shifting,
+# We need this
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*']
+)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
 

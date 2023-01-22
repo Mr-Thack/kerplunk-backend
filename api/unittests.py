@@ -16,11 +16,18 @@ if PERF:
     from httpx import get, post, put, delete
     # uuuh, someone's gotta write the web socket test wrapper
 else:
+    from shutil import rmtree
+    from os import mkdir
+    if not PERF and not LONGDEBUG:
+        # Clear data directory
+        rmtree('../data/')
+        # NOTE: We need to eventually implement our own rmtree,
+        # because it's a waste of bandwidth installing a whole library
+        # to do something relatively simple, recursively removing a directory
+        mkdir('../data/')
     from starlette.testclient import (TestClient,
                                       WebSocketTestSession as WebSocket)
     from main import app
-    from os import mkdir
-    from shutil import rmtree
     # NOTE: To reduce bloat, we need to get rid of this
 
 
@@ -117,6 +124,10 @@ class Test010_auth(unittest.TestCase):
     def test010_make_user(self):
         """Sign up test user"""
         self.assertEqual(sign_up_user(user1).status_code, 200)
+
+    def test015_test_username(self):
+        """Test against used username being signed up for"""
+        self.assertNotEqual(sign_up_user(user1).status_code, 200)
 
     def test020_get_sid(self):
         """
@@ -278,6 +289,7 @@ if __name__ == '__main__':
         # because it's a waste of bandwidth installing a whole library
         # to do something relatively simple, recursively removing a directory
         mkdir('../data/')
+    client = make_client()
     # Start Server as daemon (dies when script ends) on seperate thread
     # server = Thread(target=server_main)
     # server.daemon = True

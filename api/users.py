@@ -10,13 +10,14 @@ class UserSchema():
     lname: str | None = None
 
 
-# Eventually hold email: username, fname+lname, phone#, school, classes
+# Eventually hold uuid: email. username, fname+lname, phone#, school, classes
 user_data: db = db("UserData", UserSchema)
 
 
 def is_email_used(email: str):
-    # Oh woopsie, this'll be hard to fix
-    # return user_data.sget(email)
+    for uuid, user in user_data:
+        if user.email == email:
+            return True
     return False
 
 
