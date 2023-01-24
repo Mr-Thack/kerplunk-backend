@@ -18,6 +18,9 @@ because orjson is leagues ahead in speed!
 Might complain when installing using pip.
 https://github.com/ijl/orjson#questions
 
+If it complains about missing 'data', then make a directory called data
+in the root of this project.
+
 # Install Required Packages
 ```
 pip install -r requirements.txt
