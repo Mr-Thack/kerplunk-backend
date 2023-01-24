@@ -11,9 +11,16 @@ PATH = '../data/'  # Default Path
 # I'm hoping this is only run once
 # If this is being run multiple times, tell me plz -Abdul Muqeet
 print('OPENING ENVIRONMENTS')
-mainenv = lmdb.open(PATH + 'main', max_dbs=4, writemap=True, subdir=True)
+# OK, so I figured out what writemap does,
+# basically, it's super fast, but if the server crashes, all the data's gone
+# Sooo we're only enabling that for the tmp environments,
+# unless we're sure that the server won't crash.
+# But the fact of the matter is that it probably will
+mainenv = lmdb.open(PATH + 'main', max_dbs=4, writemap=False, subdir=True)
 chatenv = lmdb.open(PATH + 'chats', map_size=(10 << 20)*10, max_dbs=100,
                     writemap=True, subdir=True)
+# I don't think the users care too much about their old text messages
+# I think...
 tmpenv = lmdb.open(PATH + 'userdata', max_dbs=1, writemap=True,
                    sync=False, subdir=True)
 
@@ -83,6 +90,7 @@ class db:
 
     def __delitem__(self, key: str | int):
         """Delete value of a key from DB"""
+        print(key)
         key = self._fixintindex(key)
         txn = self.env.begin(db=self.db, write=True)
         txn.delete(bytes(key, 'utf-8'))
@@ -142,9 +150,8 @@ class db:
 
     def __repr__(self):
         ret = ''
-        for key, val in self.env.begin(db=self.db).cursor():
-            k = str(key, 'utf-8')
-            ret += k + ':' + self[k] + "\n"
+        for key, val in self:
+            ret += key + ':' + str(val) + "\n"
         return ret
 
     def display(self):

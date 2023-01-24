@@ -27,6 +27,11 @@ def make_user(email: str, username: str) -> str:
     return uuid
 
 
+def print_users():
+    for (uuid, user) in user_data:
+        print(f'UUID: {uuid} and USER: {user}')
+
+
 def valid_keys(fields: list[str]) -> bool:
     return set(fields) <= set(UserSchema.__annotations__.keys())
 

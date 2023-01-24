@@ -6,9 +6,12 @@ class SocketManager():
     async def connect(self, ws, uuid):
         await ws.accept()
         self.clients[uuid] = ws
+        print(self.clients)
 
     def disconnect(self, uuid):
         """Disconnect by UUID"""
+        print('Disconnecting')
+        print(self.clients, uuid)
         del self.clients[uuid]
 
     async def dm(self, uuid, msg: str):
@@ -17,12 +20,12 @@ class SocketManager():
     async def broadcast(self, msg: str):
         """Broadcast to all"""
         for ws in self.clients.values():
-            await ws.send_text(str)
+            await ws.send_text(msg)
 
     async def broadcast_ex(self, exuuid, msg: str):
         """Broadcast Excluding a Client"""
         for uuid, ws in self.clients:
-            if uuid != ex_uuid:
+            if uuid != exuuid:
                 await ws.send_text(str)
 
     async def recv(self, uuid):

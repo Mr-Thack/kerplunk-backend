@@ -66,7 +66,8 @@ class User:
     sid: str
     lname: str
     ws: WebSocket = None
-    chat_log: [str] = None  # Cur copy of chat, ideally same in each joined user
+    chat_log: [str] = None
+    # Current copy of chatlog, we test if is same in each joined user
 
 
 @dataclass
@@ -111,7 +112,8 @@ def sign_up_user(user: User):
 def get_user_sid(user: User):
     con = {
         'grant_type': '',
-        'username': user.uname,
+        # We sign in with email, bcz that doesn't change often
+        'username': user.email,
         'password': user.pwd,
         'scope': '',
         'client_id': '',
