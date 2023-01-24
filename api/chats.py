@@ -31,13 +31,12 @@ sm = SocketManager()
 
 
 def is_chat_name_taken(name: str):
-    return True if name in [chat.name for chat in chats] else False
+    return True if name in [chat.name for (cid, chat) in chats] else False
 
 
 def list_chats() -> str:
     """List all chats by their display name"""
-    # Doing "for cid_chat in chats" returns (cid, chat) as a cid_chat: tuple
-    return ' '.join([cid_chat[1].name for cid_chat in chats])
+    return ' '.join([chat.name for (cid, chat) in chats])
 
 
 def open_chat(cid: str):
@@ -114,6 +113,6 @@ async def join_chatroom_user_event_loop(uuid: str, cid: str):
 
 async def on_user_leave_chatroom(uuid: str, cid: str):
     msg = f"User {get_field(uuid, 'uname')} has left the chat!"
-    write_msg(cid, msg)
     sm.disconnect(uuid)  # Remove inactive user
+    write_msg(cid, msg)
     await sm.broadcast(msg)  # Then send to all that're left

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 @dataclass
 class CredsSchema():
     uuid: str
-    uname: str
+    email: str
 
 
 creds = db('Credentials', CredsSchema)
@@ -40,6 +40,7 @@ class SignUpData(BaseModel):
 
 def get_user(ahash: str) -> list[str, str]:
     data = creds[ahash]
+    print(creds)
     if data:
         return data
 
@@ -48,10 +49,10 @@ def gen_hash(pwd: str) -> str:
     return hashpw(pwd.encode('utf-8'), HASH_SALT).decode('utf-8')
 
 
-def login_user(uname: str, pwd: str, ip: str):
-    ahash: str = gen_hash(pwd)
+def login_user(email: str, pwd: str, ip: str):
+    ahash: str = gen_hash(email + pwd)
     user: CredsSchema = get_user(ahash)
-    if user and user.uname == uname:
+    if user and user.email == email:
         # This won't work when running behind a proxy
         return makeSID(user.uuid, ip)
         # req.client = (client_ip_addr, client_port)
@@ -59,7 +60,9 @@ def login_user(uname: str, pwd: str, ip: str):
 
 async def signup_user(data: SignUpData):
     if not is_email_used(data.email):
-        ahash: str = gen_hash(data.pwd)
+        # We combine the email and password
+        # incase the email or username are the same
+        ahash: str = gen_hash(data.email + data.pwd)
         uuid = make_user(data.email, data.uname)
-        creds[ahash] = CredsSchema(uuid, data.uname)
+        creds[ahash] = CredsSchema(uuid, data.email)
         return True

@@ -1,4 +1,6 @@
-data/data/*
+# Data from lmdb, we don't want this shared and potentially have data leak
+data/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
