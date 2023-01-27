@@ -11,19 +11,7 @@ from chats import (list_chats, create_chatroom, InitChatRoomData,
                    on_user_join_chatroom)
 from sid import SIDValidity
 
-app = FastAPI()
-# Enable Cross Origin Resource Sharing,
-# Since we don't have a domain and the IP keeps shifting,
-# We need this
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=['*'],
-    allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*']
-)
-app.mount('/', StaticFiles(directory='../../kerplunk-frontend/build/',
-                           html=True), name='static')
+api = FastAPI(title='api')
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
 
@@ -36,7 +24,7 @@ def oauth_uuid(req: Request, token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail='Token Invalid/Expired')
 
 
-@app.post('/signup')
+@api.post('/signup')
 async def signup(success: bool = Depends(signup_user)):
     if success:
         return success
@@ -45,7 +33,7 @@ async def signup(success: bool = Depends(signup_user)):
                             detail='Email already in use!')
 
 
-@app.post('/login')
+@api.post('/login')
 async def login(req: Request, fd: OAuth2PasswordRequestForm = Depends()):
     token = login_user(fd.username, fd.password, req.client.host)
     if not token:
@@ -54,7 +42,7 @@ async def login(req: Request, fd: OAuth2PasswordRequestForm = Depends()):
     return {'access_token': token, 'token_type': 'bearer'}
 
 
-@app.get('/userme')
+@api.get('/userme')
 async def user_get_field(fields: list[str] = Query(),
                          uuid: str = Depends(oauth_uuid)):
     if not valid_keys(fields):
@@ -62,19 +50,19 @@ async def user_get_field(fields: list[str] = Query(),
     return multi_get(uuid, fields)
 
 
-@app.post('/userme')
+@api.post('/userme')
 async def user_set_field(fields: dict, uuid: str = Depends(oauth_uuid)):
     if valid_fields(fields):
         raise HTTPException(status_code=400, detail='Invalid Fields')
     return {'changed': multi_set(uuid, fields)}
 
 
-@app.get('/chats')
+@api.get('/chats')
 async def ret_list_chats():
     return {'chatrooms': list_chats()}
 
 
-@app.post('/chats')
+@api.post('/chats')
 async def open_chatroom(room_data: InitChatRoomData,
                         uuid: str = Depends(oauth_uuid)):
     cid = create_chatroom(room_data, uuid)
@@ -84,7 +72,7 @@ async def open_chatroom(room_data: InitChatRoomData,
         raise HTTPException(status_code=400, detail='Chatroom name in use')
 
 
-@app.patch('/chats')
+@api.patch('/chats')
 async def user_join_chatroom(name: str, pwd: str | None = None,
                              uuid: str = Depends(oauth_uuid)):
     room_data = add_user_to_chatroom(uuid, name, pwd)
@@ -106,7 +94,7 @@ async def ws_uuid(ws: WebSocket, cid: str, token: str):
     return (cid, uuid)
 
 
-@app.websocket('/chats/{cid}')
+@api.websocket('/chats/{cid}')
 async def tmpchatroom(ws: WebSocket, cid_uuid=Depends(ws_uuid)):
     (cid, uuid) = cid_uuid  # Tried putting (cid, uuid) in params; won't work?
     await on_user_join_chatroom(cid, uuid, ws)
@@ -115,3 +103,21 @@ async def tmpchatroom(ws: WebSocket, cid_uuid=Depends(ws_uuid)):
             await join_chatroom_user_event_loop(uuid, cid)
     except WebSocketDisconnect:
         await on_user_leave_chatroom(uuid, cid)
+
+
+app = FastAPI(title='main')
+# Enable Cross Origin Resource Sharing,
+# Since we don't have a domain and the IP keeps shifting,
+# We need this
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*']
+)
+app.mount('/api/', api)
+app.mount('/', StaticFiles(directory='../../frontend/build/',
+                           html=True), 'ui')
+for p in app.routes:
+    print(p.path)
