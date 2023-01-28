@@ -1,0 +1,27 @@
+#!/sbin/openrc-run
+# Written Jan 27th, 2023; Run on Alpine
+
+goto_dir="~/kerplunk/backend/api"
+server_cmd="uvicorn main:app --host 0.0.0.0 --port 8080"
+logfile="/var/log/kerplunk.log"
+pidfile="/var/run/kerplunk.pid"
+
+depend() {
+    need net
+    after firewall
+}
+
+start() {
+    ebegin "Starting Kerplunk"
+    # Run the $server_cmd as the "webadmin" user, then store data in logfile
+    su -c "cd && source ~/.profile && cd $goto_dir && $server_cmd" -s /bin/ash webadmin &> $logfile &
+    statusCode=$?  # We'll return this later
+    echo !> $pidfile  # stash process id into pid file for stopping later
+    eend $statusCode  # return status code of server start
+}
+
+stop() {
+    ebegin "Stopping Kerplunk"
+    start-stop-daemon --stop --pidfile $pidfile  # kill from a process ID file
+    eend $?
+}
