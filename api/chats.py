@@ -108,7 +108,7 @@ async def join_chatroom_user_event_loop(uuid: str, cid: str):
     msg = await sm.recv(uuid)
     await sm.dm(uuid, f'You sent "{msg}"')
     write_msg(cid, msg)
-    await sm.broadcast(msg)
+    await sm.broadcast_ex(uuid, msg)
 
 
 async def on_user_leave_chatroom(uuid: str, cid: str):

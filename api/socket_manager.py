@@ -24,9 +24,9 @@ class SocketManager():
 
     async def broadcast_ex(self, exuuid, msg: str):
         """Broadcast Excluding a Client"""
-        for uuid, ws in self.clients:
+        for (uuid, ws) in self.clients.items():
             if uuid != exuuid:
-                await ws.send_text(str)
+                await ws.send_text(msg)
 
     async def recv(self, uuid):
         msg = await self.clients[uuid].receive_text()
