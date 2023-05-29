@@ -10,6 +10,7 @@ from chats import (list_chats, create_chatroom, InitChatRoomData,
                    on_user_leave_chatroom, join_chatroom_user_event_loop,
                    on_user_join_chatroom)
 from sid import SIDValidity
+from os import path
 
 api = FastAPI(title='api')
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
@@ -117,7 +118,20 @@ app.add_middleware(
     allow_headers=['*']
 )
 app.mount('/api/', api)
-app.mount('/', StaticFiles(directory='../../kerplunk-frontend/build/',
+
+# Static frontend files
+STATICDIR = '../../kerplunk-frontend'
+# User could've renamed it to 'frontend' due to old system
+if not path.isdir(STATICDIR):
+    STATICDIR = '../../frontend'
+
+STATICDIR = STATICDIR + "/build"
+
+# Check if this exists
+if not path.isdir(STATICDIR):
+    print("You also need to install https://github.com/Mr-Thack/kerplunk-frontend.")
+    print("Then keep the frontend code's directory in the same parent directory as the backend's code.")
+    quit(1)
+    
+app.mount('/', StaticFiles(directory=STATICDIR,
                            html=True), 'ui')
-for p in app.routes:
-    print(p.path)

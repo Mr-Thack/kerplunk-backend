@@ -1,4 +1,5 @@
 import lmdb
+from os import path, mkdir
 from orjson import dumps, loads
 # from ormsgpack import packb, unpackb
 # I wanted to use ormsgpack, bcz it's based off of orjson and it's super fast
@@ -10,6 +11,18 @@ from orjson import dumps, loads
 PATH = '../data/'  # Default Path
 # I'm hoping this is only run once
 # If this is being run multiple times, tell me plz -Abdul Muqeet
+
+if not path.exists(PATH):
+    print("""You don't seem to have the data folder.\n
+          AUTOMATICALLY GENERATING DATA FOLDER!\n
+          IF THIS IS ON THE SERVER, WE HAVE ERROR! ABORT NOW!
+          """)
+    mkdir(PATH)
+elif not path.isdir(PATH):
+    print(PATH + " IS NOT A DIRECTORY! ABORT!")
+    quit(1)
+
+
 print('OPENING ENVIRONMENTS')
 # OK, so I figured out what writemap does,
 # basically, it's super fast, but if the server crashes, all the data's gone
