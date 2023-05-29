@@ -117,7 +117,7 @@ app.add_middleware(
     allow_headers=['*']
 )
 app.mount('/api/', api)
-app.mount('/', StaticFiles(directory='../../frontend/build/',
+app.mount('/', StaticFiles(directory='../../kerplunk-frontend/build/',
                            html=True), 'ui')
 for p in app.routes:
     print(p.path)

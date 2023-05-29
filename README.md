@@ -34,9 +34,10 @@ uvicorn main:app
 cd api
 gunicorn main:app --worker 4 --worker-class uvicorn.workers.UvicornWorker \
     --bind 0.0.0.0:8080
-# 4 worker (optional), on Uvicorn (required), 0.0.0.0 (global addresses),
-    :8080, (port 8080 because that's how I set up iptables)
 
+# 4 worker (optional), on Uvicorn (required), 0.0.0.0 (global addresses),
+:8080, (port 8080 because that's how I set up iptables)
+```
 # Automatically Test API Using Unittest
 ```
 cd api
