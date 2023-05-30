@@ -131,6 +131,9 @@ STATICDIR = STATICDIR + "/build"
 if not path.isdir(STATICDIR):
     print("You also need to install https://github.com/Mr-Thack/kerplunk-frontend.")
     print("Then keep the frontend code's directory in the same parent directory as the backend's code.")
+    print("The server will now stop.")
+    # Putting quit here makes the server stop working, it doesn't stop the server completely.
+    # I added a disclaimer letting the user know that the server isn't running.
     quit(1)
     
 app.mount('/', StaticFiles(directory=STATICDIR,
